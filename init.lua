@@ -51,7 +51,7 @@ local function get_end_pics_list(file_list)
 
             end_pics_data.read_files[file_path] = true
 
-            local file_fd = io.open(file_path)
+            local file_fd = io.open(file_path, "r")
             assert(file_fd, "Invalid file path")
 
             local file_source = file_fd:read("a")
@@ -195,10 +195,93 @@ local function get_end_pics_list(file_list)
 
 end
 
-local someting = get_end_pics_list({
-    {parent_dir = "test_dir", file_name = "lol.tex"},
-})
-
-for k, i in pairs(someting) do
-    print(k, i.lmodt, i.parent_dir)
+-- Param: pics_list
+local function build_dep_tree(pics_list)
+    local dep_cache = read_dep_cache()
 end
+
+-- Param: file_path, relative path of file from current
+--        working directory
+-- Return: root_dir(string), root_file(string)
+local function get_root_dir(file_path)
+
+    assert(type(file_path) == "string",
+        "get_root_dir: Expected file_path to be string type"
+    )
+
+    local parent_dir
+    local file_name
+    local is_dir
+
+    parent_dir, file_name, is_dir =
+    file_path:match("^(/?.-)/-([%w%.-_ ]+)(/?)$")
+    assert(not (is_dir == "/"), "File name ends with a /")
+
+    local file_fd = io.open(file_path, "r")
+    assert(file_fd, "Failed to open: " .. file_path)
+
+    local file_source = file_fd:read("a")
+    file_fd:close()
+
+    local oparg
+    local fstarg
+
+    oparg, fstarg = file_source:match(
+        "\\documentclass[ \n\t]*%[(.-)%][ \n\t]*{(.-)}"
+    )
+
+    local oais_abs_path
+    local oaparent_dir
+    local oafile_name
+    local oais_dir
+
+    if fstarg == "subfiles" then
+        oais_abs_path, oaparent_dir, oafile_name, oais_dir =
+        oparg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
+        assert(not (oais_dir == "/"), "File name ends with a /")
+
+        -- checking of extention
+        if not oafile_name:match(".-%.([%w-_]+) *$") then
+            oafile_name = oafile_name .. ".tex"
+        end
+
+
+        if parent_dir == "" then
+            if oaparent_dir == "" then
+                return ".", oafile_name
+            else
+                return oais_abs_path .. oaparent_dir, oafile_name
+            end
+        else
+            if oaparent_dir == "" then
+                return parent_dir, oafile_name
+            else
+                if oais_abs_path == "" then
+                    return parent_dir .. "/" .. oaparent_dir, oafile_name
+                else
+                    return "/" .. oaparent_dir, oafile_name
+                end
+            end
+        end
+
+    else
+        if parent_dir == "" then
+            return ".", file_name
+        else
+            return parent_dir, file_name
+        end
+    end
+
+end
+
+local root, name = get_root_dir("test_dir/dir/another.tex")
+
+print(root, name)
+
+-- local someting = get_end_pics_list({
+--     {parent_dir = "test_dir", file_name = "lol.tex"},
+-- })
+--
+-- for k, i in pairs(someting) do
+--     print(k, i.lmodt, i.parent_dir)
+-- end
