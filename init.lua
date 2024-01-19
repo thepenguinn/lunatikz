@@ -1,3 +1,204 @@
 #!/data/data/com.termux/files/usr/bin/lua5.3
 
-print("hello world")
+
+
+-- Param: root_dir string, path to the root dir
+-- Return: a table
+local function read_dep_cache(root_dir)
+
+    local dep_file = io.open(root_dir .. "/tikzpics/dep_cache.lua", "r")
+
+    if dep_file then
+        dep_file:close()
+        return require(root_dir .. "/tikzpics/dep_cache")
+    else
+        return {}
+    end
+
+end
+
+-- Param: file_list a table of paths, should be relative paths from root_dir.
+-- Return: a hashmap with each file name without extention as keys to tables,
+--         and each having the parent_dir(string), and lmodt(nummer) as values
+local function get_end_pics_list(file_list)
+
+    -- Param: end_pics_data = {
+    --              file_list = { -- a table
+    --                  parent_dir = path of the parent dir,
+    --                  file_name = name of the file
+    --              },
+    --              pics_list[key] = { -- a hashmap -- key = file name without extention
+    --                  parent_dir = path of the parent dir,
+    --                  lmodt = last modified time of tex file
+    --              },
+    --              read_files[key] = true -- a hashmap -- key = path of read files
+    --        }
+    -- Return: a hashmap with each file name without extention as keys to tables,
+    --         and each having the parent_dir(string), and lmodt(nummer) as values
+    local function _get_end_pics_list(end_pics_data)
+
+        local child_file_list = {}
+
+        for _, file in pairs(end_pics_data.file_list) do
+
+            local file_path = file.parent_dir .. "/" .. file.file_name
+
+            assert(not (end_pics_data.read_files[file_path]),
+                "Seems like this file has been read: \""
+                .. file_path
+                .. "\""
+            )
+
+            end_pics_data.read_files[file_path] = true
+
+            local file_fd = io.open(file_path)
+            assert(file_fd, "Invalid file path")
+
+            local file_source = file_fd:read("a")
+
+            local is_abs_path
+            local parent_dir
+            local file_name
+            local is_dir
+            local file_basename
+
+            for macro, fstarg in file_source:gmatch("\\([%w-_]+)[ \n\t]-{(.-)}") do
+
+                if macro == "subfile"
+                    or macro == "subfileinclude"
+                    or macro == "include"
+                    or macro == "input" then
+
+                    is_abs_path, parent_dir, file_name, is_dir =
+                    fstarg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
+
+                    assert(not (is_dir == "/"), "File name ends with a /")
+
+                    if is_abs_path == "/" then
+                        if parent_dir == "" then
+                            child_file_list[#child_file_list + 1] = {
+                                parent_dir = "/",
+                                file_name = file_name
+                            }
+                        else
+                            child_file_list[#child_file_list + 1] = {
+                                parent_dir = "/" .. parent_dir,
+                                file_name = file_name
+                            }
+                        end
+
+                    else
+                        if parent_dir == "" then
+                            child_file_list[#child_file_list + 1] = {
+                                parent_dir = file.parent_dir,
+                                file_name = file_name
+                            }
+                        else
+                            child_file_list[#child_file_list + 1] = {
+                                parent_dir = file.parent_dir .. "/" .. parent_dir,
+                                file_name = file_name
+                            }
+                        end
+                    end
+
+                elseif macro == "includegraphics" then
+
+                    is_abs_path, parent_dir, file_name, is_dir =
+                    fstarg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
+
+                    assert(not (is_dir == "/"), "File name ends with a /")
+
+                    file_basename = file_name:match("(.-)%.[%w-_]+ *$")
+                    assert(file_basename, "File basename is empty")
+
+                    if end_pics_data.pics_list[file_basename] then
+                        goto continue
+                    end
+
+                    if is_abs_path == "/" then
+                        if parent_dir == "" then
+                            end_pics_data.pics_list[file_basename] = {
+                                parent_dir = "/"
+                            }
+                        else
+                            end_pics_data.pics_list[file_basename] = {
+                                parent_dir = "/" .. parent_dir
+                            }
+                        end
+                    else
+
+                        if parent_dir == "" then
+                            end_pics_data.pics_list[file_basename] = {
+                                parent_dir = file.parent_dir
+                            }
+                        else
+                            end_pics_data.pics_list[file_basename] = {
+                                parent_dir = file.parent_dir .. "/" .. parent_dir
+                            }
+                        end
+
+                    end
+
+                    local tmp_fd = nil
+                    local lmodt = nil
+
+                    tmp_fd = io.open(
+                        end_pics_data.pics_list[file_basename].parent_dir
+                        .. "/"
+                        .. file_basename
+                        .. ".tex",
+                        "r"
+                    )
+
+                    if tmp_fd then
+                        lmodt = io.popen(
+                            "stat --printf \"%Y\" "
+                            .. end_pics_data.pics_list[file_basename].parent_dir
+                            .. "/"
+                            .. file_basename
+                            .. ".tex"
+                        ):read("a")
+                        end_pics_data.pics_list[file_basename].lmodt = tonumber(lmodt)
+                        tmp_fd:close()
+                    else
+                        -- print("file doesn't exist: "
+                        --     .. end_pics_data.pics_list[file_basename].parent_dir
+                        --     .. "/"
+                        --     .. file_name
+                        -- )
+                    end
+
+
+                end
+
+                ::continue::
+            end
+
+            file_fd:close()
+
+        end
+
+        if #child_file_list == 0 then
+            return end_pics_data.pics_list
+        else
+            end_pics_data.file_list = child_file_list
+            return _get_end_pics_list(end_pics_data)
+        end
+
+    end
+
+    return _get_end_pics_list({
+        file_list = file_list,
+        pics_list = {},
+        read_files = {}
+    })
+
+end
+
+local someting = get_end_pics_list({
+    {parent_dir = "test_dir", file_name = "lol.tex"},
+})
+
+for k, i in pairs(someting) do
+    print(k, i.lmodt, i.parent_dir)
+end
