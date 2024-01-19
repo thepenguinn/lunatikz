@@ -274,9 +274,30 @@ local function get_root_dir(file_path)
 
 end
 
-local root, name = get_root_dir("test_dir/dir/another.tex")
+-- Param: file_path, relative path of file from current
+--        working directory
+-- Return: parent_dir(string), file_name(string)
+local function split_path(file_path)
 
-print(root, name)
+    local parent_dir
+    local file_name
+    local is_dir
+
+    parent_dir, file_name, is_dir =
+    file_path:match("^(/?.-)/-([%w%.-_ ]+)(/?)$")
+    assert(not (is_dir == "/"), "File name ends with a /")
+
+    assert(not (file_name == ""),
+        "split_path: Got a file_name with empty string"
+    )
+
+    if parent_dir == "" then
+        parent_dir = "."
+    end
+
+    return parent_dir, file_name
+
+end
 
 -- local someting = get_end_pics_list({
 --     {parent_dir = "test_dir", file_name = "lol.tex"},
