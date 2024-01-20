@@ -115,58 +115,60 @@ local function get_end_pics_list(file_list)
                         goto continue
                     end
 
+                    local rl_parent_dir
+
                     if is_abs_path == "/" then
                         if parent_dir == "" then
-                            end_pics_data.pics_list[file_basename] = {
-                                parent_dir = "/"
-                            }
+                            rl_parent_dir = "/"
                         else
-                            end_pics_data.pics_list[file_basename] = {
-                                parent_dir = "/" .. parent_dir
-                            }
+                            rl_parent_dir = "/" .. parent_dir
                         end
                     else
 
                         if parent_dir == "" then
-                            end_pics_data.pics_list[file_basename] = {
-                                parent_dir = file.parent_dir
-                            }
+                            rl_parent_dir = file.parent_dir
                         else
-                            end_pics_data.pics_list[file_basename] = {
-                                parent_dir = file.parent_dir .. "/" .. parent_dir
-                            }
+                            rl_parent_dir = file.parent_dir .. "/" .. parent_dir
                         end
 
                     end
 
-                    local tmp_fd = nil
-                    local lmodt = nil
+                    end_pics_data.pics_list[file_basename] = {
+                        parent_dir = io.popen(
+                            "readlink -e "
+                            .. rl_parent_dir
+                        ):read("a"):gsub("\n", "")
+                    }
 
-                    tmp_fd = io.open(
-                        end_pics_data.pics_list[file_basename].parent_dir
-                        .. "/"
-                        .. file_basename
-                        .. ".tex",
-                        "r"
-                    )
+                    -- we don't need to check the lmodt at this point
+                    --  local tmp_fd = nil
+                    --  local lmodt = nil
 
-                    if tmp_fd then
-                        lmodt = io.popen(
-                            "stat --printf \"%Y\" "
-                            .. end_pics_data.pics_list[file_basename].parent_dir
-                            .. "/"
-                            .. file_basename
-                            .. ".tex"
-                        ):read("a")
-                        end_pics_data.pics_list[file_basename].lmodt = tonumber(lmodt)
-                        tmp_fd:close()
-                    else
-                        -- print("file doesn't exist: "
-                        --     .. end_pics_data.pics_list[file_basename].parent_dir
-                        --     .. "/"
-                        --     .. file_name
-                        -- )
-                    end
+                    --  tmp_fd = io.open(
+                    --      end_pics_data.pics_list[file_basename].parent_dir
+                    --      .. "/"
+                    --      .. file_basename
+                    --      .. ".tex",
+                    --      "r"
+                    --  )
+
+                    --  if tmp_fd then
+                    --      lmodt = io.popen(
+                    --          "stat --printf \"%Y\" "
+                    --          .. end_pics_data.pics_list[file_basename].parent_dir
+                    --          .. "/"
+                    --          .. file_basename
+                    --          .. ".tex"
+                    --      ):read("a")
+                    --      end_pics_data.pics_list[file_basename].lmodt = tonumber(lmodt)
+                    --      tmp_fd:close()
+                    --  else
+                    --      -- print("file doesn't exist: "
+                    --      --     .. end_pics_data.pics_list[file_basename].parent_dir
+                    --      --     .. "/"
+                    --      --     .. file_name
+                    --      -- )
+                    --  end
 
 
                 end
@@ -299,10 +301,10 @@ local function split_path(file_path)
 
 end
 
--- local someting = get_end_pics_list({
---     {parent_dir = "test_dir", file_name = "lol.tex"},
--- })
---
--- for k, i in pairs(someting) do
---     print(k, i.lmodt, i.parent_dir)
--- end
+local someting = get_end_pics_list({
+    {parent_dir = "test_dir", file_name = "lol.tex"},
+})
+
+for k, i in pairs(someting) do
+    print(k, i.lmodt, i.parent_dir)
+end
