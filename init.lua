@@ -119,6 +119,8 @@ local function get_end_pics_list(file_list)
                     end
 
                     local rl_parent_dir
+                    local abs_parent_dir
+                    local tmp_fd
 
                     if is_abs_path == "/" then
                         if parent_dir == "" then
@@ -136,43 +138,18 @@ local function get_end_pics_list(file_list)
 
                     end
 
+                    tmp_fd = io.popen(
+                        "readlink -e "
+                        .. rl_parent_dir
+                    )
+
+                    abs_parent_dir = tmp_fd:read("a"):gsub("\n", "")
+
+                    tmp_fd:close()
+
                     end_pics_data.pics_list[file_basename] = {
-                        parent_dir = io.popen(
-                            "readlink -e "
-                            .. rl_parent_dir
-                        ):read("a"):gsub("\n", "")
+                        parent_dir = abs_parent_dir
                     }
-
-                    -- we don't need to check the lmodt at this point
-                    --  local tmp_fd = nil
-                    --  local lmodt = nil
-
-                    --  tmp_fd = io.open(
-                    --      end_pics_data.pics_list[file_basename].parent_dir
-                    --      .. "/"
-                    --      .. file_basename
-                    --      .. ".tex",
-                    --      "r"
-                    --  )
-
-                    --  if tmp_fd then
-                    --      lmodt = io.popen(
-                    --          "stat --printf \"%Y\" "
-                    --          .. end_pics_data.pics_list[file_basename].parent_dir
-                    --          .. "/"
-                    --          .. file_basename
-                    --          .. ".tex"
-                    --      ):read("a")
-                    --      end_pics_data.pics_list[file_basename].lmodt = tonumber(lmodt)
-                    --      tmp_fd:close()
-                    --  else
-                    --      -- print("file doesn't exist: "
-                    --      --     .. end_pics_data.pics_list[file_basename].parent_dir
-                    --      --     .. "/"
-                    --      --     .. file_name
-                    --      -- )
-                    --  end
-
 
                 end
 
@@ -277,11 +254,20 @@ local function get_root_dir(file_path)
         root_file_name = file_name
     end
 
+    local tmp_fd
+    local abs_parent_dir
 
-    return io.popen(
+    tmp_fd = io.popen(
         "readlink -e "
         .. rl_parent_dir
-    ):read("a"):gsub("\n", ""), root_file_name
+    )
+
+    abs_parent_dir = tmp_fd :read("a")
+        :gsub("\n", "")
+
+    tmp_fd:close()
+
+    return abs_parent_dir, root_file_name
 
 end
 
@@ -315,6 +301,7 @@ local function get_gdep_list(root_dir, dirs_to_add)
     local function add_files(gdep_list, dir)
 
         local files_fd
+        local lmodt_fd
         local lmodt
 
         local parent_dir
@@ -332,10 +319,14 @@ local function get_gdep_list(root_dir, dirs_to_add)
                 "^(/?.-)/-([%w%.-_ ]+)%.tex$"
             )
 
-            lmodt = io.popen(
+            lmodt_fd = io.popen(
                 "stat --printf \"%Y\" "
                 .. file
-            ):read("a")
+            )
+
+            lmodt = lmodt_fd:read("a")
+
+            lmodt_fd:close()
 
             gdep_list[file_basename] = {
                 parent_dir = parent_dir,
@@ -343,6 +334,8 @@ local function get_gdep_list(root_dir, dirs_to_add)
             }
 
         end
+
+        files_fd:close()
     end
 
     local read_dirs = {}
@@ -366,6 +359,8 @@ local function get_gdep_list(root_dir, dirs_to_add)
         ::continue::
     end
 
+    dirs_fd:close()
+
     for _, dir_list in pairs(dirs_to_add) do
 
         for _, dir in pairs(dir_list) do
@@ -382,10 +377,6 @@ local function get_gdep_list(root_dir, dirs_to_add)
 
     end
 
-    for k, v in pairs(gdep_list) do
-        print(k, v.parent_dir, v.lmodt)
-    end
-
     return gdep_list
 
 end
@@ -397,49 +388,15 @@ local function build_dep_tree(root_dir, pics_list)
 
     local dep_cache = read_dep_cache(root_dir)
 
+    local gdep_list = get_gdep_list(root_dir, { pics_list })
+
     local file_lmodt
     local pdf_fd
     local tex_fd
 
-    for key, file in pairs(pics_list) do
 
-        if read_files[key] then
-            goto continue
-        end
-
-        pdf_fd = io.open(
-            file.parent_dir
-            .. "/"
-            .. key
-            ..".pdf",
-        "r"
-        )
-
-        if pdf_fd then
-
-        end
-
-        tex_fd = io.open(
-            file.parent_dir
-            .. "/"
-            .. key
-            .. ".",
-        "r"
-        )
-
-        if pdf_fd then
-            print(
-                key
-                .. ".pdf"
-            )
-            pdf_fd:close()
-        end
-
-
-        -- if dep_cache[key]
-        -- print(key, file.parent_dir)
-
-        ::continue::
+    for k, v in pairs(gdep_list) do
+        print(k, v)
     end
 
 end
@@ -450,10 +407,7 @@ local pics_list = get_end_pics_list({
 
 local root_dir = get_root_dir("test_dir/lol.tex")
 
-get_gdep_list(root_dir, {
-    pics_list
-})
--- build_dep_tree(root_dir, pics_list)
+build_dep_tree(root_dir, pics_list)
 
 -- for k, i in pairs(someting) do
 --     print(k, i.lmodt, i.parent_dir)
