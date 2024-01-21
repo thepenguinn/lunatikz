@@ -10,10 +10,13 @@ local function read_dep_cache(root_dir)
 
     if dep_file then
         dep_file:close()
-        return require(root_dir .. "/tikzpics/dep_cache")
-    else
-        return {}
+        local dep = dofile(root_dir .. "/tikzpics/dep_cache.lua")
+        if dep then
+            return dep
+        end
     end
+
+    return {}
 
 end
 
@@ -197,11 +200,6 @@ local function get_end_pics_list(file_list)
 
 end
 
--- Param: pics_list
-local function build_dep_tree(pics_list)
-    local dep_cache = read_dep_cache()
-end
-
 -- Param: file_path, relative path of file from current
 --        working directory
 -- Return: root_dir(string), root_file(string)
@@ -237,6 +235,9 @@ local function get_root_dir(file_path)
     local oafile_name
     local oais_dir
 
+    local rl_parent_dir
+    local root_file_name
+
     if fstarg == "subfiles" then
         oais_abs_path, oaparent_dir, oafile_name, oais_dir =
         oparg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
@@ -247,32 +248,40 @@ local function get_root_dir(file_path)
             oafile_name = oafile_name .. ".tex"
         end
 
-
         if parent_dir == "" then
             if oaparent_dir == "" then
-                return ".", oafile_name
+                rl_parent_dir = ".", oafile_name
             else
-                return oais_abs_path .. oaparent_dir, oafile_name
+                rl_parent_dir = oais_abs_path .. oaparent_dir
             end
         else
             if oaparent_dir == "" then
-                return parent_dir, oafile_name
+                rl_parent_dir = parent_dir
             else
                 if oais_abs_path == "" then
-                    return parent_dir .. "/" .. oaparent_dir, oafile_name
+                    rl_parent_dir = parent_dir .. "/" .. oaparent_dir
                 else
-                    return "/" .. oaparent_dir, oafile_name
+                    rl_parent_dir = "/" .. oaparent_dir
                 end
             end
         end
 
+        root_file_name = oafile_name
+
     else
         if parent_dir == "" then
-            return ".", file_name
+            rl_parent_dir = "."
         else
-            return parent_dir, file_name
+            rl_parent_dir = parent_dir
         end
+        root_file_name = file_name
     end
+
+
+    return io.popen(
+        "readlink -e "
+        .. rl_parent_dir
+    ):read("a"):gsub("\n", ""), root_file_name
 
 end
 
@@ -301,10 +310,151 @@ local function split_path(file_path)
 
 end
 
-local someting = get_end_pics_list({
+local function get_gdep_list(root_dir, dirs_to_add)
+
+    local function add_files(gdep_list, dir)
+
+        local files_fd
+        local lmodt
+
+        local parent_dir
+        local file_basename
+
+        files_fd = io.popen(
+            "find "
+            .. dir
+            .. " -type f -name *.tex"
+        )
+
+        for file in files_fd:lines() do
+
+            parent_dir, file_basename = file:match(
+                "^(/?.-)/-([%w%.-_ ]+)%.tex$"
+            )
+
+            lmodt = io.popen(
+                "stat --printf \"%Y\" "
+                .. file
+            ):read("a")
+
+            gdep_list[file_basename] = {
+                parent_dir = parent_dir,
+                lmodt = lmodt
+            }
+
+        end
+    end
+
+    local read_dirs = {}
+    local gdep_list = {}
+    local dirs_fd
+
+    dirs_fd = io.popen(
+        "find "
+        .. root_dir
+        .. " -type d -name tikzpics"
+    )
+
+    for dir in dirs_fd:lines() do
+        if read_dirs[dir] then
+            goto continue
+        end
+
+        add_files(gdep_list, dir)
+
+        read_dirs[dir] = true
+        ::continue::
+    end
+
+    for _, dir_list in pairs(dirs_to_add) do
+
+        for _, dir in pairs(dir_list) do
+
+            if read_dirs[dir.parent_dir] then
+                goto continue
+            end
+
+            add_files(gdep_list, dir.parent_dir)
+
+            read_dirs[dir.parent_dir] = true
+            ::continue::
+        end
+
+    end
+
+    for k, v in pairs(gdep_list) do
+        print(k, v.parent_dir, v.lmodt)
+    end
+
+    return gdep_list
+
+end
+
+---@Param: pics_list
+local function build_dep_tree(root_dir, pics_list)
+
+    local read_files = {}
+
+    local dep_cache = read_dep_cache(root_dir)
+
+    local file_lmodt
+    local pdf_fd
+    local tex_fd
+
+    for key, file in pairs(pics_list) do
+
+        if read_files[key] then
+            goto continue
+        end
+
+        pdf_fd = io.open(
+            file.parent_dir
+            .. "/"
+            .. key
+            ..".pdf",
+        "r"
+        )
+
+        if pdf_fd then
+
+        end
+
+        tex_fd = io.open(
+            file.parent_dir
+            .. "/"
+            .. key
+            .. ".",
+        "r"
+        )
+
+        if pdf_fd then
+            print(
+                key
+                .. ".pdf"
+            )
+            pdf_fd:close()
+        end
+
+
+        -- if dep_cache[key]
+        -- print(key, file.parent_dir)
+
+        ::continue::
+    end
+
+end
+
+local pics_list = get_end_pics_list({
     {parent_dir = "test_dir", file_name = "lol.tex"},
 })
 
-for k, i in pairs(someting) do
-    print(k, i.lmodt, i.parent_dir)
-end
+local root_dir = get_root_dir("test_dir/lol.tex")
+
+get_gdep_list(root_dir, {
+    pics_list
+})
+-- build_dep_tree(root_dir, pics_list)
+
+-- for k, i in pairs(someting) do
+--     print(k, i.lmodt, i.parent_dir)
+-- end
