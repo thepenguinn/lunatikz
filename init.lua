@@ -517,11 +517,11 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
         or dep_cache[key].lmodt < gdep_list[key].lmodt then
 
         if not dep_cache[key] then
-            print("no dep_cache: " .. key)
+            tb_log("log", "no dep_cache: " .. key)
         elseif not dep_cache[key].lmodt then
-            print("no lmodt: " .. key)
+            tb_log("log", "no lmodt: " .. key)
         elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
-            print("file modified: " .. key)
+            tb_log("log", "file modified: " .. key)
         end
 
         need_to_build = true
@@ -604,13 +604,11 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 end
 
 ---@Param: pics_list
-local function build_dep_tree(root_dir, pics_list, gdep_list)
+local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
     local dep_cache = read_dep_cache(root_dir)
 
     local pdf_fd
-
-    -- if dep_cache then return dep_cache end
 
     for key, file in pairs(pics_list) do
 
@@ -627,6 +625,8 @@ local function build_dep_tree(root_dir, pics_list, gdep_list)
 
         pdf_fd = io.open(
             pics_list[key].parent_dir
+            .. "/"
+            .. style
             .. "/"
             .. key
             .. ".pdf",
@@ -650,6 +650,45 @@ local function build_dep_tree(root_dir, pics_list, gdep_list)
 
 end
 
+local function gen_standalone_main(root_dir, root_file)
+
+    local root_file_source = read_file(
+        root_dir
+        .. "/"
+        .. root_file
+    )
+
+    local standalone_source = root_file_source:gsub(
+        ".*\\documentclass[ \n\t]*%[[^%]]-%][ \n\t]*{[^}]-}(.-\\begin{document}).*",
+        "\\documentclass[tikz]{standalone}%1\n\\end{document}\n"
+    )
+
+    local fd = io.open(
+        root_dir
+        .. "/_standalone_main.tex",
+        "w"
+    )
+
+    assert(fd,
+        "gen_standalone_main: failed to open standalone main file"
+    )
+
+    fd:write(standalone_source)
+
+end
+
+local function main()
+
+    local style = "default"
+    local file = nil
+
+    local root_dir, root_file = get_root_dir("test_dir/lol.tex")
+
+    gen_standalone_main(root_dir, root_file)
+
+end
+
+main()
 -- local pics_list = get_end_pics_list({
 --     {parent_dir = "test_dir", file_name = "lol.tex"},
 -- })
