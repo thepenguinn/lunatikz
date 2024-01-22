@@ -53,14 +53,24 @@ local function read_dep_cache(root_dir)
             end
         end,
         __index_for_child = {
-            __index = function (_, key)
+            __index = function (tbl, key)
                 if key == "parent_nodes"
                     or key == "child_nodes" then
-                    return {}
+                    local val = {}
+                    rawset(tbl, key, val)
+                    return val
                 end
             end
         },
     })
+
+    local mt = getmetatable(dep_cache).__index_for_child
+
+    for _, tbl in pairs(dep_cache) do
+        if type(tbl) == "table" then
+            setmetatable(tbl, mt)
+        end
+    end
 
     return dep_cache
 
@@ -440,17 +450,23 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 
     local file_fd
     local file_source
-    local needed_to_build = false
+    local need_to_build = false
     local new_parent_nodes = {}
 
     if gdep_list[key].dep_added then
-        return needed_to_build
+        return need_to_build
     end
 
     if not dep_cache[key]
         or dep_cache[key].lmodt < gdep_list[key].lmodt then
 
-        needed_to_build = true
+        if not dep_cache[key] then
+            print("no dep_cache: " .. key)
+        elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
+            print("file modified: " .. key)
+        end
+
+        need_to_build = true
 
         file_source = read_file(
             gdep_list[key].parent_dir
@@ -467,7 +483,7 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 
                 gdep_list[key].been_here = true
 
-                new_parent_nodes[macro] = true
+                new_parent_nodes[#new_parent_nodes + 1] = macro
 
                 build_dep_for_file(macro, gdep_list, dep_cache)
 
@@ -489,23 +505,26 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
             }
         end
 
-        for parent in pairs(new_parent_nodes) do
+        for _, parent in pairs(new_parent_nodes) do
             dep_cache[key].parent_nodes[parent] = true
         end
 
     else
 
+        local tmp_need_to_build
+
         for parent in pairs(dep_cache[key].parent_nodes) do
-            needed_to_build = build_dep_for_file(
+            tmp_need_to_build = build_dep_for_file(
                 parent, gdep_list, dep_cache
             )
+            need_to_build = need_to_build or tmp_need_to_build
         end
 
     end
 
     gdep_list[key].dep_added = true
 
-    return needed_to_build
+    return need_to_build
 
 end
 
@@ -521,6 +540,8 @@ local function build_dep_tree(root_dir, pics_list)
 
     local tmp_fd
 
+    -- if dep_cache then return dep_cache end
+
     for key, file in pairs(pics_list) do
 
         if not gdep_list[key] then
@@ -534,8 +555,8 @@ local function build_dep_tree(root_dir, pics_list)
             goto continue
         end
 
-        print("hai " .. key)
         if build_dep_for_file(key, gdep_list, dep_cache) then
+            print("need to build: " .. key)
         end
 
         ::continue::
@@ -549,7 +570,7 @@ local function build_dep_tree(root_dir, pics_list)
 
 end
 
-local printtable = function(tbl, name)
+local printtable = function(tbl)
 
     local function _printtable(tbl, depth)
 
@@ -585,7 +606,7 @@ local printtable = function(tbl, name)
         end
     end
 
-    print(name .. " = {")
+    print("return {")
     _printtable(tbl, 0)
     print("}")
 
@@ -595,11 +616,12 @@ local pics_list = get_end_pics_list({
     {parent_dir = "test_dir", file_name = "lol.tex"},
 })
 
--- local root_dir = get_root_dir("test_dir/dir/another.tex")
+local root_dir = get_root_dir("test_dir/dir/another.tex")
 --
--- local dep_cache = build_dep_tree(root_dir, pics_list)
+local dep_cache = build_dep_tree(root_dir, pics_list)
 
--- printtable(dep_cache, "hai")
-for k, i in pairs(pics_list) do
-    print(k, i.parent_dir)
-end
+-- printtable(dep_cache)
+
+-- for k, i in pairs(pics_list) do
+--     print(k, i.parent_dir)
+-- end
