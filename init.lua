@@ -1,22 +1,68 @@
 #!/data/data/com.termux/files/usr/bin/lua5.3
 
 
+local function tb_log(lvl, msg)
+    if lvl == "warn" then
+        print("WARN: " .. msg)
+    end
+end
+
+
+local function read_file(file)
+
+    assert(
+        type(file) == "string",
+        "read_file: file is not a string"
+    )
+
+    local fd = io.open(file, "r")
+    local source
+
+    if fd then
+        source = fd:read("a")
+        fd:close()
+        return source
+    else
+        return nil
+    end
+
+end
 
 -- Param: root_dir string, path to the root dir
 -- Return: a table
 local function read_dep_cache(root_dir)
 
     local dep_file = io.open(root_dir .. "/tikzpics/dep_cache.lua", "r")
+    local dep_cache = nil
 
     if dep_file then
         dep_file:close()
         local dep = dofile(root_dir .. "/tikzpics/dep_cache.lua")
         if dep then
-            return dep
+            dep_cache = dep
         end
     end
 
-    return {}
+    dep_cache = dep_cache or {}
+
+    setmetatable(dep_cache, {
+        __newindex = function (tbl, key, val)
+            rawset(tbl, key, val)
+            if type(val) == "table" then
+                setmetatable(val, getmetatable(tbl).__index_for_child)
+            end
+        end,
+        __index_for_child = {
+            __index = function (_, key)
+                if key == "parent_nodes"
+                    or key == "child_nodes" then
+                    return {}
+                end
+            end
+        },
+    })
+
+    return dep_cache
 
 end
 
@@ -298,7 +344,7 @@ end
 
 local function get_gdep_list(root_dir, dirs_to_add)
 
-    local function add_files(gdep_list, dir)
+    local function add_files(dir, gdep_list)
 
         local files_fd
         local lmodt_fd
@@ -310,7 +356,7 @@ local function get_gdep_list(root_dir, dirs_to_add)
         files_fd = io.popen(
             "find "
             .. dir
-            .. " -type f -name *.tex"
+            .. " -type f -name \"*.tex\""
         )
 
         for file in files_fd:lines() do
@@ -324,7 +370,7 @@ local function get_gdep_list(root_dir, dirs_to_add)
                 .. file
             )
 
-            lmodt = lmodt_fd:read("a")
+            lmodt = tonumber(lmodt_fd:read("a"))
 
             lmodt_fd:close()
 
@@ -352,8 +398,7 @@ local function get_gdep_list(root_dir, dirs_to_add)
         if read_dirs[dir] then
             goto continue
         end
-
-        add_files(gdep_list, dir)
+        add_files(dir, gdep_list)
 
         read_dirs[dir] = true
         ::continue::
@@ -381,8 +426,100 @@ local function get_gdep_list(root_dir, dirs_to_add)
 
 end
 
+local function build_dep_for_file(key, gdep_list, dep_cache)
+
+    assert(type(key) == "string")
+    assert(type(gdep_list) == "table")
+    assert(type(dep_cache) == "table")
+
+    assert(
+        not gdep_list[key].been_here,
+        "cyclic referencing in dependency tree of "
+        .. key
+    )
+
+    local file_fd
+    local file_source
+    local needed_to_build = false
+    local new_parent_nodes = {}
+
+    if gdep_list[key].dep_added then
+        return needed_to_build
+    end
+
+    if not dep_cache[key]
+        or not dep_cache[key].lmodt
+        or dep_cache[key].lmodt < gdep_list[key].lmodt then
+
+        if not dep_cache[key] then
+            print("no dep cache: " .. key)
+        elseif not dep_cache[key].lmodt then
+            print("no lmodt: " .. key)
+        end
+
+        needed_to_build = true
+
+        file_source = read_file(
+            gdep_list[key].parent_dir
+            .. "/"
+            .. key
+            .. ".tex"
+        )
+
+        for macro in file_source:gmatch(
+            "\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}"
+        ) do
+
+            if gdep_list[macro] then
+
+                gdep_list[key].been_here = true
+
+                new_parent_nodes[macro] = true
+
+                build_dep_for_file(macro, gdep_list, dep_cache)
+
+                gdep_list[key].been_here = nil
+
+            end
+
+        end
+
+        if dep_cache[key] then
+            for parent in pairs(dep_cache[key].parent_nodes) do
+                dep_cache[parent].child_nodes[key] = nil
+            end
+        else
+            dep_cache[key] = {}
+        end
+
+        for parent in pairs(new_parent_nodes) do
+            dep_cache[key].parent_nodes[parent] = true
+        end
+
+        dep_cache[key].dep_added = true
+
+    else
+
+        if dep_cache[key].dep_added then
+            needed_to_build = false
+        else
+            for parent in pairs(dep_cache[key].parent_nodes) do
+                needed_to_build = build_dep_for_file(
+                    parent, gdep_list, dep_cache
+                )
+            end
+            dep_cache[key].dep_added = true
+        end
+
+    end
+
+    return needed_to_build
+
+end
+
 ---@Param: pics_list
 local function build_dep_tree(root_dir, pics_list)
+
 
     local read_files = {}
 
@@ -390,13 +527,30 @@ local function build_dep_tree(root_dir, pics_list)
 
     local gdep_list = get_gdep_list(root_dir, { pics_list })
 
-    local file_lmodt
-    local pdf_fd
-    local tex_fd
+    local tmp_fd
 
+    for key, file in pairs(pics_list) do
 
-    for k, v in pairs(gdep_list) do
-        print(k, v)
+        if not gdep_list[key] then
+            pics_list[key] = nil
+            tb_log(
+                "warn",
+                "tex file doesn't exist: "
+                .. key
+                .. ".tex"
+            )
+            goto continue
+        end
+
+        if build_dep_for_file(key, gdep_list, dep_cache) then
+
+        end
+
+        ::continue::
+    end
+
+    for k, v in pairs(pics_list) do
+        print(k)
     end
 
 end
@@ -405,10 +559,10 @@ local pics_list = get_end_pics_list({
     {parent_dir = "test_dir", file_name = "lol.tex"},
 })
 
-local root_dir = get_root_dir("test_dir/lol.tex")
+local root_dir = get_root_dir("test_dir/dir/another.tex")
 
 build_dep_tree(root_dir, pics_list)
 
--- for k, i in pairs(someting) do
---     print(k, i.lmodt, i.parent_dir)
+-- for k, i in pairs(pics_list) do
+--     print(k, i.parent_dir)
 -- end
