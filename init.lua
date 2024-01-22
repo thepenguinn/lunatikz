@@ -76,6 +76,13 @@ local function read_dep_cache(root_dir)
 
 end
 
+local function write_dep_cache(root_dir, dep_cache)
+
+    local function writetable()
+    end
+
+end
+
 -- Param: file_list a table of paths, should be relative paths from root_dir.
 -- Return: a hashmap with each file name without extention as keys to tables,
 --         and each having the parent_dir(string), and lmodt(nummer) as values
@@ -458,10 +465,13 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
     end
 
     if not dep_cache[key]
+        or not dep_cache[key].lmodt
         or dep_cache[key].lmodt < gdep_list[key].lmodt then
 
         if not dep_cache[key] then
             print("no dep_cache: " .. key)
+        elseif not dep_cache[key].lmodt then
+            print("no lmodt: " .. key)
         elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
             print("file modified: " .. key)
         end
@@ -489,6 +499,12 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 
                 gdep_list[key].been_here = nil
 
+            else
+                tb_log("log",
+                    "Skipping macro: because no tex file named "
+                    .. macro
+                    .. ".tex found"
+                )
             end
 
         end
@@ -506,18 +522,29 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
         end
 
         for _, parent in pairs(new_parent_nodes) do
+            if not dep_cache[parent] then
+                assert(gdep_list[parent],
+                    "build_dep_for_file: couldn't find "
+                    .. parent
+                )
+                dep_cache[parent] = {
+                    parent_dir = gdep_list[parent].parent_dir,
+                    lmodt = nil
+                }
+            end
             dep_cache[key].parent_nodes[parent] = true
+            dep_cache[parent].child_nodes[key] = true
         end
 
     else
 
-        local tmp_need_to_build
+        local parent_need_to_build
 
         for parent in pairs(dep_cache[key].parent_nodes) do
-            tmp_need_to_build = build_dep_for_file(
+            parent_need_to_build = build_dep_for_file(
                 parent, gdep_list, dep_cache
             )
-            need_to_build = need_to_build or tmp_need_to_build
+            need_to_build = need_to_build or parent_need_to_build
         end
 
     end
@@ -529,16 +556,11 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 end
 
 ---@Param: pics_list
-local function build_dep_tree(root_dir, pics_list)
-
-
-    local read_files = {}
+local function build_dep_tree(root_dir, pics_list, gdep_list)
 
     local dep_cache = read_dep_cache(root_dir)
 
-    local gdep_list = get_gdep_list(root_dir, { pics_list })
-
-    local tmp_fd
+    local pdf_fd
 
     -- if dep_cache then return dep_cache end
 
@@ -555,18 +577,28 @@ local function build_dep_tree(root_dir, pics_list)
             goto continue
         end
 
+        pdf_fd = io.open(
+            pics_list[key].parent_dir
+            .. "/"
+            .. key
+            .. ".pdf",
+            "r"
+        )
+
+        if pdf_fd then
+            pdf_fd:close()
+        else
+            pics_list[key].need_to_build = true
+        end
+
         if build_dep_for_file(key, gdep_list, dep_cache) then
-            print("need to build: " .. key)
+            pics_list[key].need_to_build = true
         end
 
         ::continue::
     end
 
     return dep_cache
-
-    -- for k, v in pairs(pics_list) do
-    --     print(k)
-    -- end
 
 end
 
@@ -616,11 +648,13 @@ local pics_list = get_end_pics_list({
     {parent_dir = "test_dir", file_name = "lol.tex"},
 })
 
-local root_dir = get_root_dir("test_dir/dir/another.tex")
+local root_dir, root_file = get_root_dir("test_dir/dir/another.tex")
 --
-local dep_cache = build_dep_tree(root_dir, pics_list)
+local gdep_list = get_gdep_list(root_dir, { pics_list })
 
--- printtable(dep_cache)
+local dep_cache = build_dep_tree(root_dir, pics_list, gdep_list)
+
+printtable(dep_cache)
 
 -- for k, i in pairs(pics_list) do
 --     print(k, i.parent_dir)
