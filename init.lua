@@ -78,8 +78,56 @@ end
 
 local function write_dep_cache(root_dir, dep_cache)
 
-    local function writetable()
+    local function writetable(fd, tbl, depth)
+
+        for key, child in pairs(tbl) do
+            if type(child) == "table" then
+                for i = 0, depth do
+                    fd:write("    ")
+                end
+                if type(key) == "string" then
+                    fd:write("[\"" .. key .. "\"] = {\n")
+                else
+                    fd:write("{\n")
+                end
+                writetable(fd, child, depth + 1)
+                for i = 0, depth do
+                    fd:write("    ")
+                end
+                fd:write("},\n")
+            else
+                for i = 0, depth do
+                    fd:write("    ")
+                end
+                if type(key) == "string" then
+                    fd:write("[\"" .. key .. "\"] = ")
+                end
+                if type(child) == "string" then
+                    local str = child:gsub("\"", "\\\"")
+                    fd:write("\"" .. str .. "\",\n")
+                else
+                    fd:write(tostring(child) .. ",\n")
+                end
+            end
+        end
     end
+
+    local file_fd = io.open(
+        root_dir
+        .. "/tikzpics/dep_cache.lua",
+        "w"
+    )
+
+    assert(file_fd,
+        "Couldn't open "
+        .. root_dir
+        .. "/tikzpics/dep_cache.lua to write dep_cache"
+    )
+
+
+    file_fd:write("return {\n")
+    writetable(file_fd, dep_cache, 0)
+    file_fd:write("}\n")
 
 end
 
@@ -602,60 +650,16 @@ local function build_dep_tree(root_dir, pics_list, gdep_list)
 
 end
 
-local printtable = function(tbl)
-
-    local function _printtable(tbl, depth)
-
-        for key, child in pairs(tbl) do
-            if type(child) == "table" then
-                for i = 0, depth do
-                    io.write("    ")
-                end
-                if type(key) == "string" then
-                    print("[\"" .. key .. "\"] = {")
-                else
-                    print("{")
-                end
-                _printtable(child, depth + 1)
-                for i = 0, depth do
-                    io.write("    ")
-                end
-                print("},")
-            else
-                for i = 0, depth do
-                    io.write("    ")
-                end
-                if type(key) == "string" then
-                    io.write("[\"" .. key .. "\"] = ")
-                end
-                if type(child) == "string" then
-                    local str = child:gsub("\"", "\\\"")
-                    print("\"" .. str .. "\",")
-                else
-                    print(tostring(child) .. ",")
-                end
-            end
-        end
-    end
-
-    print("return {")
-    _printtable(tbl, 0)
-    print("}")
-
-end
-
-local pics_list = get_end_pics_list({
-    {parent_dir = "test_dir", file_name = "lol.tex"},
-})
-
-local root_dir, root_file = get_root_dir("test_dir/dir/another.tex")
+-- local pics_list = get_end_pics_list({
+--     {parent_dir = "test_dir", file_name = "lol.tex"},
+-- })
 --
-local gdep_list = get_gdep_list(root_dir, { pics_list })
-
-local dep_cache = build_dep_tree(root_dir, pics_list, gdep_list)
-
-printtable(dep_cache)
-
+-- local root_dir, root_file = get_root_dir("test_dir/dir/another.tex")
+-- --
+-- local gdep_list = get_gdep_list(root_dir, { pics_list })
+--
+-- local dep_cache = build_dep_tree(root_dir, pics_list, gdep_list)
+--
 -- for k, i in pairs(pics_list) do
 --     print(k, i.parent_dir)
 -- end
