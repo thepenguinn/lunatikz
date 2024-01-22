@@ -448,14 +448,7 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
     end
 
     if not dep_cache[key]
-        or not dep_cache[key].lmodt
         or dep_cache[key].lmodt < gdep_list[key].lmodt then
-
-        if not dep_cache[key] then
-            print("no dep cache: " .. key)
-        elseif not dep_cache[key].lmodt then
-            print("no lmodt: " .. key)
-        end
 
         needed_to_build = true
 
@@ -488,30 +481,29 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
             for parent in pairs(dep_cache[key].parent_nodes) do
                 dep_cache[parent].child_nodes[key] = nil
             end
+            dep_cache[key].lmodt = gdep_list[key].lmodt
         else
-            dep_cache[key] = {}
+            dep_cache[key] = {
+                parent_dir = gdep_list[key].parent_dir,
+                lmodt = gdep_list[key].lmodt
+            }
         end
 
         for parent in pairs(new_parent_nodes) do
             dep_cache[key].parent_nodes[parent] = true
         end
 
-        dep_cache[key].dep_added = true
-
     else
 
-        if dep_cache[key].dep_added then
-            needed_to_build = false
-        else
-            for parent in pairs(dep_cache[key].parent_nodes) do
-                needed_to_build = build_dep_for_file(
-                    parent, gdep_list, dep_cache
-                )
-            end
-            dep_cache[key].dep_added = true
+        for parent in pairs(dep_cache[key].parent_nodes) do
+            needed_to_build = build_dep_for_file(
+                parent, gdep_list, dep_cache
+            )
         end
 
     end
+
+    gdep_list[key].dep_added = true
 
     return needed_to_build
 
@@ -542,16 +534,60 @@ local function build_dep_tree(root_dir, pics_list)
             goto continue
         end
 
+        print("hai " .. key)
         if build_dep_for_file(key, gdep_list, dep_cache) then
-
         end
 
         ::continue::
     end
 
-    for k, v in pairs(pics_list) do
-        print(k)
+    return dep_cache
+
+    -- for k, v in pairs(pics_list) do
+    --     print(k)
+    -- end
+
+end
+
+local printtable = function(tbl, name)
+
+    local function _printtable(tbl, depth)
+
+        for key, child in pairs(tbl) do
+            if type(child) == "table" then
+                for i = 0, depth do
+                    io.write("    ")
+                end
+                if type(key) == "string" then
+                    print("[\"" .. key .. "\"] = {")
+                else
+                    print("{")
+                end
+                _printtable(child, depth + 1)
+                for i = 0, depth do
+                    io.write("    ")
+                end
+                print("},")
+            else
+                for i = 0, depth do
+                    io.write("    ")
+                end
+                if type(key) == "string" then
+                    io.write("[\"" .. key .. "\"] = ")
+                end
+                if type(child) == "string" then
+                    local str = child:gsub("\"", "\\\"")
+                    print("\"" .. str .. "\",")
+                else
+                    print(tostring(child) .. ",")
+                end
+            end
+        end
     end
+
+    print(name .. " = {")
+    _printtable(tbl, 0)
+    print("}")
 
 end
 
@@ -559,10 +595,11 @@ local pics_list = get_end_pics_list({
     {parent_dir = "test_dir", file_name = "lol.tex"},
 })
 
-local root_dir = get_root_dir("test_dir/dir/another.tex")
+-- local root_dir = get_root_dir("test_dir/dir/another.tex")
+--
+-- local dep_cache = build_dep_tree(root_dir, pics_list)
 
-build_dep_tree(root_dir, pics_list)
-
--- for k, i in pairs(pics_list) do
---     print(k, i.parent_dir)
--- end
+-- printtable(dep_cache, "hai")
+for k, i in pairs(pics_list) do
+    print(k, i.parent_dir)
+end
