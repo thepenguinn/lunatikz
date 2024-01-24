@@ -942,13 +942,39 @@ local function link_build_files(style, file_order, dep_cache)
     end
 end
 
+local function clean_standalone_files(root_dir, parent_dir)
+
+    assert(type(root_dir) == "string")
+    assert(type(parent_dir) == "string")
+
+    assert(root_dir ~= "")
+    assert(parent_dir ~= "")
+
+    os.execute(
+        "rm -r \""
+        .. root_dir
+        .. "/"
+        .. StandaloneMain
+        .. ".tex\" \""
+        .. parent_dir
+        .. "/"
+        .. StandaloneSub
+        .. ".tex\" \""
+        .. parent_dir
+        .. "/"
+        .. StandaloneTmpDir
+        .. "\""
+    )
+
+end
+
 local function main(file)
 
     assert(check_file(file),
         "main: invalid file"
     )
 
-    local style = "default"
+    local style = "color"
 
     local root_dir, root_file = get_root_dir(file)
 
@@ -980,6 +1006,8 @@ local function main(file)
     link_build_files(style, file_order, dep_cache)
 
     write_dep_cache(root_dir, dep_cache)
+
+    clean_standalone_files(root_dir, file_parent_dir)
 
 end
 
