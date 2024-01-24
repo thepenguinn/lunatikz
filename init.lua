@@ -493,9 +493,10 @@ local function get_gdep_list(root_dir, dirs_to_add)
 
 end
 
-local function build_dep_for_file(key, gdep_list, dep_cache)
+local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
     assert(type(key) == "string")
+    assert(type(style) == "string")
     assert(type(gdep_list) == "table")
     assert(type(dep_cache) == "table")
 
@@ -515,14 +516,14 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
     end
 
     if not dep_cache[key]
-        or not dep_cache[key].lmodt
-        or dep_cache[key].lmodt < gdep_list[key].lmodt then
+        or not dep_cache[key][style .. "_lmodt"]
+        or dep_cache[key][style .. "_lmodt"] < gdep_list[key].lmodt then
 
         if not dep_cache[key] then
             tb_log("log", "no dep_cache: " .. key)
-        elseif not dep_cache[key].lmodt then
+        elseif not dep_cache[key][style .. "_lmodt"] then
             tb_log("log", "no lmodt: " .. key)
-        elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
+        elseif dep_cache[key][style .. "_lmodt"] < gdep_list[key].lmodt then
             tb_log("log", "file modified: " .. key)
         end
 
@@ -545,7 +546,7 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
-                build_dep_for_file(macro, gdep_list, dep_cache)
+                build_dep_for_file(macro, style, gdep_list, dep_cache)
 
                 gdep_list[key].been_here = nil
 
@@ -563,23 +564,24 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
             for parent in pairs(dep_cache[key].parent_nodes) do
                 dep_cache[parent].child_nodes[key] = nil
             end
-            dep_cache[key].lmodt = gdep_list[key].lmodt
+            dep_cache[key][style .. "_lmodt"] = gdep_list[key].lmodt
         else
             dep_cache[key] = {
                 parent_dir = gdep_list[key].parent_dir,
-                lmodt = gdep_list[key].lmodt
+                [style .. "_lmodt"] = gdep_list[key].lmodt
             }
         end
 
         for _, parent in pairs(new_parent_nodes) do
             if not dep_cache[parent] then
+                -- this assert will never get triggered
                 assert(gdep_list[parent],
                     "build_dep_for_file: couldn't find "
                     .. parent
                 )
                 dep_cache[parent] = {
                     parent_dir = gdep_list[parent].parent_dir,
-                    lmodt = nil
+                    [style .. "_lmodt"] = nil
                 }
             end
             dep_cache[key].parent_nodes[parent] = true
@@ -592,7 +594,7 @@ local function build_dep_for_file(key, gdep_list, dep_cache)
 
         for parent in pairs(dep_cache[key].parent_nodes) do
             parent_need_to_build = build_dep_for_file(
-                parent, gdep_list, dep_cache
+                parent, style, gdep_list, dep_cache
             )
             need_to_build = need_to_build or parent_need_to_build
         end
@@ -646,7 +648,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
             pics_list[key].need_to_build = true
         end
 
-        if build_dep_for_file(key, gdep_list, dep_cache) then
+        if build_dep_for_file(key, style, gdep_list, dep_cache) then
             pics_list[key].need_to_build = true
         end
 
