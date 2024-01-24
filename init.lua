@@ -803,6 +803,10 @@ end
 local function check_file(file_path)
     local fd
 
+    if not file_path:match("%.tex$") then
+        return false
+    end
+
     fd = io.open(file_path, "r")
 
     if fd then
@@ -971,7 +975,7 @@ end
 local function main(file)
 
     assert(check_file(file),
-        "main: invalid file"
+        "main: invalid file, or file doesn't end with .tex"
     )
 
     local style = "default"
