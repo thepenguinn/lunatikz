@@ -1,5 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/lua5.3
 
+local StandaloneMain = "_standalone_main"
+local StandaloneSub = "_standalone_sub"
 
 local function tb_log(lvl, msg)
     if lvl == "warn" then
@@ -606,6 +608,11 @@ end
 ---@Param: pics_list
 local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
+    assert(type(root_dir) == "string")
+    assert(type(style) == "string")
+    assert(type(pics_list) == "table")
+    assert(type(gdep_list) == "table")
+
     local dep_cache = read_dep_cache(root_dir)
 
     local pdf_fd
@@ -665,7 +672,9 @@ local function gen_standalone_main(root_dir, root_file)
 
     local fd = io.open(
         root_dir
-        .. "/_standalone_main.tex",
+        .. "/"
+        .. StandaloneMain
+        .. ".tex",
         "w"
     )
 
@@ -674,21 +683,146 @@ local function gen_standalone_main(root_dir, root_file)
     )
 
     fd:write(standalone_source)
+    fd:close()
 
 end
 
-local function main()
+local function gen_standalone_sub(parent_dir, file_name,
+    pics_list, gdep_list, dep_cache)
+
+    local function add_files(fd, pics_list)
+
+        local file_source
+
+        for key in pairs(pics_list) do
+            if gdep_list[key].file_added then
+                goto continue
+            end
+
+            add_files(fd, dep_cache[key].parent_nodes)
+            file_source = read_file(
+                dep_cache[key].parent_dir
+                .. "/"
+                .. key
+                .. ".tex"
+            )
+
+            fd:write(file_source)
+            fd:write("\n\n")
+
+            gdep_list[key].file_added = true
+
+            ::continue::
+        end
+    end
+
+    local fd
+    local doc_source
+    local doc_class
+
+    local file_order = {}
+    local file_source
+
+    doc_source = read_file(
+        parent_dir
+        .. "/"
+        .. file_name
+    )
+
+    assert(doc_source,
+        "gen_standalone_sub: failed to open source file"
+    )
+
+    doc_class = doc_source:gsub(
+        ".*(\\documentclass[ \n\t]*%[.-/?)[%w%.-_]-%].*",
+        "%1" .. StandaloneMain .. "]{subfiles}\n\n"
+    )
+
+    fd = io.open(
+        parent_dir
+        .. "/"
+        .. StandaloneSub
+        .. ".tex",
+        "w"
+    )
+
+    fd:write(doc_class)
+
+    for key in pairs(pics_list) do
+
+        add_files(fd, dep_cache[key].parent_nodes)
+
+        file_order[#file_order + 1] = key
+        gdep_list[key].file_added = true
+
+    end
+
+    fd:write("\\begin{document}\n\n")
+
+    for _, key in ipairs(file_order) do
+        file_source = read_file(
+            dep_cache[key].parent_dir
+            .. "/"
+            .. key
+            .. ".tex"
+        )
+
+        fd:write(file_source)
+        fd:write("\n\n")
+
+    end
+
+    fd:write("\\end{document}\n\n")
+
+    fd:close()
+
+    return file_order
+
+end
+
+-- Param: file_path, absolute or relative path
+local function check_file(file_path)
+    local fd
+
+    fd = io.open(file_path, "r")
+
+    if fd then
+        fd:close()
+        return true
+    else
+        return false
+    end
+
+end
+
+local function main(file)
+
+    assert(check_file(file),
+        "main: invalid file"
+    )
 
     local style = "default"
-    local file = nil
 
-    local root_dir, root_file = get_root_dir("test_dir/lol.tex")
+    local root_dir, root_file = get_root_dir(file)
+
+    local file_parent_dir, file_name = split_path(file)
+
+    -- TODO: argument is weird, KISS
+    local pics_list = get_end_pics_list({
+        { parent_dir = file_parent_dir, file_name = file_name }
+    })
+
+    -- TODO: argument is weird, KISS
+    local gdep_list = get_gdep_list(root_dir, { pics_list })
+
+    local dep_cache = build_dep_tree(root_dir, style, pics_list, gdep_list)
 
     gen_standalone_main(root_dir, root_file)
+    gen_standalone_sub(file_parent_dir, file_name, pics_list, gdep_list, dep_cache)
 
 end
 
-main()
+main(arg[1])
 -- local pics_list = get_end_pics_list({
 --     {parent_dir = "test_dir", file_name = "lol.tex"},
 -- })
