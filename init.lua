@@ -187,7 +187,7 @@ local function get_end_pics_list(file_list)
             local is_dir
             local file_basename
 
-            for macro, fstarg in file_source:gmatch("\\([%w-_]+)[ \n\t]-{(.-)}") do
+            for macro, fstarg in file_source:gmatch("\\([%w-_]+)[^\\]-{(.-)}") do
 
                 if macro == "subfile"
                     or macro == "subfileinclude"
@@ -974,7 +974,7 @@ local function main(file)
         "main: invalid file"
     )
 
-    local style = "color"
+    local style = "default"
 
     local root_dir, root_file = get_root_dir(file)
 
