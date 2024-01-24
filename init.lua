@@ -7,6 +7,8 @@ local StandaloneTmpDir = "_standalone_tmp"
 local function tb_log(lvl, msg)
     if lvl == "warn" then
         print("WARN: " .. msg)
+    elseif lvl == "log" then
+        print("LOG: " .. msg)
     end
 end
 
@@ -48,30 +50,31 @@ local function read_dep_cache(root_dir)
 
     dep_cache = dep_cache or {}
 
-    setmetatable(dep_cache, {
+    local mt_for_child = {
+        __index = function (tbl, key)
+            if key == "parent_nodes"
+                or key == "child_nodes" then
+                local val = {}
+                rawset(tbl, key, val)
+                return val
+            end
+        end
+    }
+
+    local mt = {
         __newindex = function (tbl, key, val)
             rawset(tbl, key, val)
             if type(val) == "table" then
-                setmetatable(val, getmetatable(tbl).__index_for_child)
+                setmetatable(val, mt_for_child)
             end
-        end,
-        __index_for_child = {
-            __index = function (tbl, key)
-                if key == "parent_nodes"
-                    or key == "child_nodes" then
-                    local val = {}
-                    rawset(tbl, key, val)
-                    return val
-                end
-            end
-        },
-    })
+        end
+    }
 
-    local mt = getmetatable(dep_cache).__index_for_child
+    setmetatable(dep_cache, mt)
 
     for _, tbl in pairs(dep_cache) do
         if type(tbl) == "table" then
-            setmetatable(tbl, mt)
+            setmetatable(tbl, mt_for_child)
         end
     end
 
@@ -114,6 +117,11 @@ local function write_dep_cache(root_dir, dep_cache)
             end
         end
     end
+
+    os.execute(
+        "mkdir \""
+        .. root_dir .. "/tikzpics\" > /dev/null 2>&1"
+    )
 
     local file_fd = io.open(
         root_dir
@@ -513,7 +521,7 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
     local new_parent_nodes = {}
 
     if gdep_list[key].dep_added then
-        return need_to_build
+        return gdep_list[key].need_to_build
     end
 
     if not dep_cache[key]
@@ -591,7 +599,7 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
     else
 
-        local parent_need_to_build
+        local parent_need_to_build = false
 
         for parent in pairs(dep_cache[key].parent_nodes) do
             parent_need_to_build = build_dep_for_file(
@@ -603,6 +611,7 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
     end
 
     gdep_list[key].dep_added = true
+    gdep_list[key].need_to_build = need_to_build
 
     return need_to_build
 
@@ -619,6 +628,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
     local dep_cache = read_dep_cache(root_dir)
 
     local pdf_fd
+    local need_to_build = false
 
     for key, file in pairs(pics_list) do
 
@@ -646,11 +656,17 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
         if pdf_fd then
             pdf_fd:close()
         else
-            pics_list[key].need_to_build = true
+            need_to_build = true
         end
 
         if build_dep_for_file(key, style, gdep_list, dep_cache) then
-            pics_list[key].need_to_build = true
+            need_to_build = true
+        end
+
+        if need_to_build then
+            need_to_build = false
+        else
+            pics_list[key] = nil
         end
 
         ::continue::
@@ -833,6 +849,12 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
             idx = cur_idx + batch_idx
             key = file_order[idx]
 
+            os.execute(
+                "mkdir \""
+                .. dep_cache[key].parent_dir .. "/".. style
+                .. "\" > /dev/null 2>&1"
+            )
+
             bg_process[batch_idx] = io.popen(
                 "pdftk \""
                 .. parent_dir
@@ -846,6 +868,8 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
                 .. tostring(idx)
                 .. " output \""
                 .. dep_cache[key].parent_dir
+                .. "/"
+                .. style
                 .. "/"
                 .. key
                 .. ".pdf\" &"
@@ -864,6 +888,12 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
         idx = cur_idx + batch_idx
         key = file_order[idx]
 
+        os.execute(
+            "mkdir \""
+            .. dep_cache[key].parent_dir .. "/".. style
+            .. "\" > /dev/null 2>&1"
+        )
+
         bg_process[batch_idx] = io.popen(
             "pdftk \""
             .. parent_dir
@@ -878,6 +908,8 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
             .. " output \""
             .. dep_cache[key].parent_dir
             .. "/"
+            .. style
+            .. "/"
             .. key
             .. ".pdf\" &"
         )
@@ -888,6 +920,26 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
         bg_process[batch_idx]:close()
     end
 
+end
+
+local function link_build_files(style, file_order, dep_cache)
+
+    for _, key in ipairs(file_order) do
+        os.execute(
+            "cp \""
+            .. dep_cache[key].parent_dir
+            .. "/"
+            .. style
+            .. "/"
+            .. key
+            .. ".pdf\" \""
+            .. dep_cache[key].parent_dir
+            .. "/"
+            .. key
+            .. ".pdf\""
+        )
+
+    end
 end
 
 local function main(file)
@@ -912,26 +964,23 @@ local function main(file)
 
     local dep_cache = build_dep_tree(root_dir, style, pics_list, gdep_list)
 
+    if not next(pics_list, nil) then
+        print("Nothing to build")
+        return 0
+    end
+
     gen_standalone_main(root_dir, root_file)
+
     local file_order = gen_standalone_sub(
         file_parent_dir, file_name, pics_list, gdep_list, dep_cache
     )
 
     build_pics(file_parent_dir, style, file_order, dep_cache)
 
+    link_build_files(style, file_order, dep_cache)
+
+    write_dep_cache(root_dir, dep_cache)
+
 end
 
-main(arg[1])
--- local pics_list = get_end_pics_list({
---     {parent_dir = "test_dir", file_name = "lol.tex"},
--- })
---
--- local root_dir, root_file = get_root_dir("test_dir/dir/another.tex")
--- --
--- local gdep_list = get_gdep_list(root_dir, { pics_list })
---
--- local dep_cache = build_dep_tree(root_dir, pics_list, gdep_list)
---
--- for k, i in pairs(pics_list) do
---     print(k, i.parent_dir)
--- end
+return main(arg[1])
