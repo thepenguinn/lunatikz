@@ -1,7 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/lua5.3
 
-local StandaloneMain = "_standalone_main"
-local StandaloneSub = "_standalone_sub"
+local StandaloneMain   = "_standalone_main"
+local StandaloneSub    = "_standalone_sub"
+local StandaloneTmpDir = "_standalone_tmp"
 
 local function tb_log(lvl, msg)
     if lvl == "warn" then
@@ -797,6 +798,98 @@ local function check_file(file_path)
 
 end
 
+local function build_pics(parent_dir, style, file_order, dep_cache)
+
+    assert(type(parent_dir) == "string")
+    assert(type(style) == "string")
+    assert(type(dep_cache) == "table")
+    assert(type(file_order) == "table")
+
+    os.execute(
+        "mkdir \""
+        .. parent_dir .. "/".. StandaloneTmpDir .. "\" > /dev/null 2>&1"
+    )
+
+    local exit_stat = os.execute(
+        "cd \"" .. parent_dir .. "\" && "
+        .. "pdflatex -halt-on-error -output-directory \""
+        .. StandaloneTmpDir
+        .. "\" \""
+        .. StandaloneSub
+        .. "\""
+    )
+
+    assert(exit_stat,
+        "build_pics: pdflatex failed miserably."
+    )
+
+    local bg_process = {}
+    local cur_idx = 0
+    local key
+    local idx
+
+    for batch = 1, #file_order / 8 do
+        for batch_idx = 1, 8 do
+            idx = cur_idx + batch_idx
+            key = file_order[idx]
+
+            bg_process[batch_idx] = io.popen(
+                "pdftk \""
+                .. parent_dir
+                .. "/"
+                .. StandaloneTmpDir
+                .. "/"
+                .. StandaloneSub
+                .. ".pdf\" cat "
+                .. tostring(idx)
+                .. "-"
+                .. tostring(idx)
+                .. " output \""
+                .. dep_cache[key].parent_dir
+                .. "/"
+                .. key
+                .. ".pdf\" &"
+            )
+        end
+
+        for batch_idx = 1, 8 do
+            bg_process[batch_idx]:read("a")
+            bg_process[batch_idx]:close()
+        end
+
+        cur_idx = cur_idx + 8
+    end
+
+    for batch_idx = 1, #file_order % 8 do
+        idx = cur_idx + batch_idx
+        key = file_order[idx]
+
+        bg_process[batch_idx] = io.popen(
+            "pdftk \""
+            .. parent_dir
+            .. "/"
+            .. StandaloneTmpDir
+            .. "/"
+            .. StandaloneSub
+            .. ".pdf\" cat "
+            .. tostring(idx)
+            .. "-"
+            .. tostring(idx)
+            .. " output \""
+            .. dep_cache[key].parent_dir
+            .. "/"
+            .. key
+            .. ".pdf\" &"
+        )
+    end
+
+    for batch_idx = 1, #file_order % 8 do
+        bg_process[batch_idx]:read("a")
+        bg_process[batch_idx]:close()
+    end
+
+end
+
 local function main(file)
 
     assert(check_file(file),
@@ -820,7 +913,11 @@ local function main(file)
     local dep_cache = build_dep_tree(root_dir, style, pics_list, gdep_list)
 
     gen_standalone_main(root_dir, root_file)
-    gen_standalone_sub(file_parent_dir, file_name, pics_list, gdep_list, dep_cache)
+    local file_order = gen_standalone_sub(
+        file_parent_dir, file_name, pics_list, gdep_list, dep_cache
+    )
+
+    build_pics(file_parent_dir, style, file_order, dep_cache)
 
 end
 
