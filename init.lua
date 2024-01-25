@@ -53,7 +53,8 @@ local function read_dep_cache(root_dir)
     local mt_for_child = {
         __index = function (tbl, key)
             if key == "parent_nodes"
-                or key == "child_nodes" then
+                or key == "child_nodes"
+                or key == "build_child_nodes" then
                 local val = {}
                 rawset(tbl, key, val)
                 return val
@@ -236,7 +237,6 @@ local function get_pics_list(parent_dir, file_name)
 
             end
 
-            -- TODO: i broke this :)
             for macro, fstarg in file_source:gmatch(
                 "\\([%w-_]+)[ \n\t]*{(.-)}"
             ) do
@@ -537,7 +537,13 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
     local new_parent_nodes = {}
 
     if gdep_list[key].dep_added then
-        return gdep_list[key].need_to_build
+        if gdep_list[key].from_child
+            and dep_cache[key].build_child_nodes[
+            gdep_list[key].from_child
+            ] then
+            print("Returned")
+            return gdep_list[key].need_to_build
+        end
     end
 
     if not dep_cache[key]
@@ -571,7 +577,9 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
+                gdep_list[macro].from_child = key
                 build_dep_for_file(macro, style, gdep_list, dep_cache)
+                gdep_list[macro].from_child = nil
 
                 gdep_list[key].been_here = nil
 
@@ -613,21 +621,53 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             dep_cache[parent].child_nodes[key] = true
         end
 
+        dep_cache[key].build_child_nodes = {}
+        if gdep_list[key].from_child then
+            dep_cache[key].build_child_nodes[
+            gdep_list[key].from_child
+            ] = true
+        end
+
+        gdep_list[key].dep_added = true
+        gdep_list[key].need_to_build = need_to_build
+
     else
 
         local parent_need_to_build = false
+        local child_need_to_build = false
 
-        for parent in pairs(dep_cache[key].parent_nodes) do
-            parent_need_to_build = build_dep_for_file(
-                parent, style, gdep_list, dep_cache
-            )
-            need_to_build = need_to_build or parent_need_to_build
+        if gdep_list[key].from_child
+            and not dep_cache[key].build_child_nodes[
+            gdep_list[key].from_child
+            ] then
+
+            child_need_to_build = true
+
+            dep_cache[key].build_child_nodes[
+            gdep_list[key].from_child
+            ] = true
+
         end
 
-    end
+        if not gdep_list[key].dep_added then
+            for parent in pairs(dep_cache[key].parent_nodes) do
+                gdep_list[parent].from_child = key
+                parent_need_to_build = build_dep_for_file(
+                    parent, style, gdep_list, dep_cache
+                )
+                gdep_list[parent].from_child = nil
+                need_to_build = need_to_build or parent_need_to_build
+            end
+            if need_to_build then
+                gdep_list[key].dep_added = true
+                gdep_list[key].need_to_build = need_to_build
+            end
 
-    gdep_list[key].dep_added = true
-    gdep_list[key].need_to_build = need_to_build
+        end
+
+        need_to_build = need_to_build or child_need_to_build
+
+    end
 
     return need_to_build
 
@@ -677,6 +717,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
         if build_dep_for_file(key, style, gdep_list, dep_cache) then
             need_to_build = true
+            tb_log("log", "Need to build: " .. key)
         end
 
         if need_to_build then
