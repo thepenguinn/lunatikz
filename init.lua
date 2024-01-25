@@ -145,7 +145,7 @@ end
 -- Param: file_list a table of paths, should be relative paths from root_dir.
 -- Return: a hashmap with each file name without extention as keys to tables,
 --         and each having the parent_dir(string), and lmodt(nummer) as values
-local function get_end_pics_list(parent_dir, file_name)
+local function get_pics_list(parent_dir, file_name)
 
     -- Param: end_pics_data = {
     --              file_list = { -- a table
@@ -160,7 +160,7 @@ local function get_end_pics_list(parent_dir, file_name)
     --        }
     -- Return: a hashmap with each file name without extention as keys to tables,
     --         and each having the parent_dir(string), and lmodt(nummer) as values
-    local function _get_end_pics_list(end_pics_data)
+    local function _get_pics_list(end_pics_data)
 
         local child_file_list = {}
 
@@ -300,12 +300,12 @@ local function get_end_pics_list(parent_dir, file_name)
             return end_pics_data.pics_list
         else
             end_pics_data.file_list = child_file_list
-            return _get_end_pics_list(end_pics_data)
+            return _get_pics_list(end_pics_data)
         end
 
     end
 
-    return _get_end_pics_list({
+    return _get_pics_list({
         file_list = {
             { parent_dir = parent_dir, file_name = file_name }
         },
@@ -1000,7 +1000,7 @@ local function main(file)
 
     local file_parent_dir, file_name = split_path(file)
 
-    local pics_list = get_end_pics_list(file_parent_dir, file_name)
+    local pics_list = get_pics_list(file_parent_dir, file_name)
 
     -- TODO: argument is weird, KISS
     local gdep_list = get_gdep_list(root_dir, { pics_list })
