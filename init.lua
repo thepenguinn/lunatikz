@@ -187,7 +187,59 @@ local function get_end_pics_list(parent_dir, file_name)
             local is_dir
             local file_basename
 
-            for macro, fstarg in file_source:gmatch("\\([%w-_]+)[^\\]-{(.-)}") do
+            local function process_includegraphics(fstarg)
+
+                is_abs_path, parent_dir, file_name, is_dir =
+                fstarg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
+
+                assert(not (is_dir == "/"), "File name ends with a /")
+
+                file_basename = file_name:match("(.-)%.[%w-_]+ *$")
+                assert(file_basename, "File basename is empty")
+
+                if end_pics_data.pics_list[file_basename] then
+                    return
+                end
+
+                local rl_parent_dir
+                local abs_parent_dir
+                local tmp_fd
+
+                if is_abs_path == "/" then
+                    if parent_dir == "" then
+                        rl_parent_dir = "/"
+                    else
+                        rl_parent_dir = "/" .. parent_dir
+                    end
+                else
+
+                    if parent_dir == "" then
+                        rl_parent_dir = file.parent_dir
+                    else
+                        rl_parent_dir = file.parent_dir .. "/" .. parent_dir
+                    end
+
+                end
+
+                tmp_fd = io.popen(
+                    "readlink -e "
+                    .. rl_parent_dir
+                )
+
+                abs_parent_dir = tmp_fd:read("a"):gsub("\n", "")
+
+                tmp_fd:close()
+
+                end_pics_data.pics_list[file_basename] = {
+                    parent_dir = abs_parent_dir
+                }
+
+            end
+
+            -- TODO: i broke this :)
+            for macro, fstarg in file_source:gmatch(
+                "\\([%w-_]+)[ \n\t]*{(.-)}"
+            ) do
 
                 if macro == "subfile"
                     or macro == "subfileinclude"
@@ -227,55 +279,17 @@ local function get_end_pics_list(parent_dir, file_name)
                     end
 
                 elseif macro == "includegraphics" then
-
-                    is_abs_path, parent_dir, file_name, is_dir =
-                    fstarg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
-
-                    assert(not (is_dir == "/"), "File name ends with a /")
-
-                    file_basename = file_name:match("(.-)%.[%w-_]+ *$")
-                    assert(file_basename, "File basename is empty")
-
-                    if end_pics_data.pics_list[file_basename] then
-                        goto continue
-                    end
-
-                    local rl_parent_dir
-                    local abs_parent_dir
-                    local tmp_fd
-
-                    if is_abs_path == "/" then
-                        if parent_dir == "" then
-                            rl_parent_dir = "/"
-                        else
-                            rl_parent_dir = "/" .. parent_dir
-                        end
-                    else
-
-                        if parent_dir == "" then
-                            rl_parent_dir = file.parent_dir
-                        else
-                            rl_parent_dir = file.parent_dir .. "/" .. parent_dir
-                        end
-
-                    end
-
-                    tmp_fd = io.popen(
-                        "readlink -e "
-                        .. rl_parent_dir
-                    )
-
-                    abs_parent_dir = tmp_fd:read("a"):gsub("\n", "")
-
-                    tmp_fd:close()
-
-                    end_pics_data.pics_list[file_basename] = {
-                        parent_dir = abs_parent_dir
-                    }
-
+                    process_includegraphics(fstarg)
                 end
 
                 ::continue::
+            end
+
+            for fstarg in file_source:gmatch(
+                "\\includegraphics[ \n\t]*%[.-%][ \n\t]*{(.-)}"
+            ) do
+
+                process_includegraphics(fstarg)
             end
 
             file_fd:close()
