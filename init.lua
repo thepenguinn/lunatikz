@@ -1029,44 +1029,200 @@ local function clean_standalone_files(root_dir, parent_dir)
 
 end
 
-local function main(file)
+local function loop_tbl(tbl)
 
-    assert(check_file(file),
-        "main: invalid file, or file doesn't end with .tex"
+    local itm = {
+        idx = 0,
+        val = nil
+    }
+
+    local mt = {
+        __index = {
+            peek_next = function ()
+                return tbl[itm.idx + 1]
+            end,
+            skip_next = function ()
+                itm.idx = itm.idx + 1
+            end,
+        }
+    }
+
+    setmetatable(itm, mt)
+
+    return function()
+        itm.idx = itm.idx + 1
+        itm.val = tbl[itm.idx]
+        if not itm.val then return nil end
+        return itm
+    end
+
+end
+
+local function usage(exe)
+
+    local exe_name
+
+    if exe:match("^/") then
+        exe_name = exe:gsub("^.-/?([%w-_]-)$", "%1")
+    else
+        exe_name = exe
+    end
+
+    io.write (
+        "usage: "
+        .. exe_name
+        .. " [options] [input file]\n\n"
+        .. "    options:\n"
+        .. "    --style              style name to use, default value is 'default'.\n"
+        .. "                         this overrides --style-file and --style-macro.\n"
+        .. "    --style-file         file to read the style from.\n"
+        .. "    --style-macro        macro to look for in the 'style file', and takes\n"
+        .. "                         the first argument to the macro as the 'style'\n"
+        .. "                         [NOTE]: style can't contain any newlines or \n"
+        .. "                         forward slashes, if the exist they will be \n"
+        .. "                         stripped.\n"
+        .. "    --style-root-path    style file will be relative path from root dir.\n"
     )
 
-    local style = "default"
+    os.exit()
 
-    local root_dir, root_file = get_root_dir(file)
+end
 
-    local file_parent_dir, file_name = split_path(file)
+local function parse_args(args)
 
-    local pics_list = get_pics_list(file_parent_dir, file_name)
+    local style_file = ""
+    local style_macro = ""
+    local style_root_path = false
+    local file = ""
+    local style = ""
 
-    -- TODO: argument is weird, KISS
-    local gdep_list = get_gdep_list(root_dir, { pics_list })
+    local tmp
 
-    local dep_cache = build_dep_tree(root_dir, style, pics_list, gdep_list)
+    for arg in loop_tbl(args) do
+        if arg.val == "--style" then
+            tmp = arg.peek_next()
+            if tmp and not tmp:match("^%-") then
+                style = tmp
+                arg.skip_next()
+            end
+        elseif arg.val == "--style-file" then
+            tmp = arg.peek_next()
+            if tmp and not tmp:match("^%-") then
+                style_file = tmp
+                arg.skip_next()
+            end
+        elseif arg.val == "--style-macro" then
+            tmp = arg.peek_next()
+            if tmp and not tmp:match("^%-") then
+                style_macro = tmp
+                arg.skip_next()
+            end
+        elseif arg.val == "--style-root-path" then
+            style_root_path = true
+        elseif not arg.val:match("^%-") then
+            file = arg.val
+        else
+            usage(args[0])
+        end
+    end
+
+    local config = {}
+
+    assert(file ~= "", "parse_args: give me a file")
+
+    assert(check_file(file),
+        "parse_args: invalid file, or file doesn't end with .tex"
+    )
+
+    config.file = file
+
+    config.parent_dir, config.file_name = split_path(file)
+
+    config.root_dir, config.root_file = get_root_dir(file)
+
+    local style_source
+
+    if style ~= "" then
+    elseif style_file ~= "" and style_macro ~= "" then
+
+        print("wait")
+        if style_root_path then
+            assert(check_file(
+                config.root_dir .. "/" .. style_file
+            ),
+                "parse_args: " .. config.root_dir
+                .. "/" .. style_file .. " doesn't exist"
+            )
+
+            style_source = read_file(
+                config.root_dir .. "/" .. style_file
+            )
+
+        else
+            assert(check_file(
+                style_file
+            ),
+                "parse_args: " .. style_file .. " doesn't exist"
+            )
+
+            style_source = read_file(
+                style_file
+            )
+        end
+
+        style = style_source:match(
+            "\\" .. style_macro .. "[ \n\t]{(.-)}"
+        ) or ""
+
+        style = style:gsub("[\n\\]", "")
+
+    elseif style_file ~= "" or style_macro ~= "" then
+        tb_log("warn",
+            "You need to specify --style-file and --style-macro"
+        )
+    end
+
+    if style == "" then
+        config.style = "default"
+    else
+        config.style = style
+    end
+
+    return config
+
+end
+
+local function main(args)
+
+    local config = parse_args(args)
+
+    local pics_list = get_pics_list(config.parent_dir, config.file_name)
+
+    local gdep_list = get_gdep_list(config.root_dir, { pics_list })
+
+    local dep_cache = build_dep_tree(
+        config.root_dir, config.style, pics_list, gdep_list
+    )
 
     if not next(pics_list, nil) then
         print("Nothing to build")
         return 0
     end
 
-    gen_standalone_main(root_dir, root_file)
+    gen_standalone_main(config.root_dir, config.root_file)
 
     local file_order = gen_standalone_sub(
-        file_parent_dir, file_name, pics_list, gdep_list, dep_cache
+        config.parent_dir, config.file_name, pics_list, gdep_list, dep_cache
     )
 
-    build_pics(file_parent_dir, style, file_order, dep_cache)
+    build_pics(config.parent_dir, config.style, file_order, dep_cache)
 
-    link_build_files(style, file_order, dep_cache)
+    link_build_files(config.style, file_order, dep_cache)
 
-    write_dep_cache(root_dir, dep_cache)
+    write_dep_cache(config.root_dir, dep_cache)
 
-    clean_standalone_files(root_dir, file_parent_dir)
+    clean_standalone_files(config.root_dir, config.parent_dir)
 
 end
 
-return main(arg[1])
+return main(arg)
