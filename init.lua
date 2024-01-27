@@ -179,7 +179,7 @@ local function get_pics_list(parent_dir, file_name)
             end_pics_data.read_files[file_path] = true
 
             local file_fd = io.open(file_path, "r")
-            assert(file_fd, "Invalid file path")
+            assert(file_fd, "Invalid file path " .. file_path)
 
             -- stripping comments
             -- this works, kind of...
@@ -261,7 +261,7 @@ local function get_pics_list(parent_dir, file_name)
 
                     if not has_extention then
                         tb_log("log",
-                            "get_pics_list: " .. file_name .. " doesn't have any extentions,"
+                            "get_pics_list: " .. fstarg .. " doesn't have any extentions,"
                             .. " appending .tex"
                         )
                         file_name = file_name .. ".tex"
@@ -554,12 +554,28 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
     if gdep_list[key].dep_added then
         if gdep_list[key].from_child
+            and dep_cache[key].build_child_nodes
             and dep_cache[key].build_child_nodes[
             gdep_list[key].from_child
             ] then
             print("Returned")
             return gdep_list[key].need_to_build
         end
+    end
+
+    local function erase_build_child_nodes(child_nodes)
+
+        if type(child_nodes) ~= "table" then
+            return
+        end
+
+        for child in pairs(child_nodes) do
+
+            erase_build_child_nodes(dep_cache[child].build_child_nodes)
+
+            dep_cache[child].build_child_nodes = nil
+        end
+
     end
 
     if not dep_cache[key]
@@ -637,8 +653,11 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             dep_cache[parent].child_nodes[key] = true
         end
 
-        dep_cache[key].build_child_nodes = {}
+        erase_build_child_nodes(dep_cache[key].build_child_nodes)
+        dep_cache[key].build_child_nodes = nil
+
         if gdep_list[key].from_child then
+            dep_cache[key].build_child_nodes = {}
             dep_cache[key].build_child_nodes[
             gdep_list[key].from_child
             ] = true
@@ -653,6 +672,7 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
         local child_need_to_build = false
 
         if gdep_list[key].from_child
+            and dep_cache[key].build_child_nodes
             and not dep_cache[key].build_child_nodes[
             gdep_list[key].from_child
             ] then
@@ -672,7 +692,16 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
                     parent, style, gdep_list, dep_cache
                 )
                 gdep_list[parent].from_child = nil
-                need_to_build = need_to_build or parent_need_to_build
+
+                if parent_need_to_build then
+                    dep_cache[parent].build_child_nodes =
+                    dep_cache[parent].build_child_nodes or {}
+
+                    dep_cache[parent].build_child_nodes[key] = true
+
+                    need_to_build = parent_need_to_build
+                end
+
             end
             if need_to_build then
                 gdep_list[key].dep_added = true
