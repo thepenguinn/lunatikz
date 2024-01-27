@@ -3,6 +3,7 @@
 local StandaloneMain   = "_standalone_main"
 local StandaloneSub    = "_standalone_sub"
 local StandaloneTmpDir = "_standalone_tmp"
+local DryRun = false
 
 local function tb_log(lvl, msg)
     if lvl == "warn" then
@@ -1124,6 +1125,8 @@ local function parse_args(args)
             end
         elseif arg.val == "--style-root-path" then
             style_root_path = true
+        elseif arg.val == "--dry-run" then
+            DryRun = true
         elseif not arg.val:match("^%-") then
             file = arg.val
         else
@@ -1219,6 +1222,8 @@ local function main(args)
     local file_order = gen_standalone_sub(
         config.parent_dir, config.file_name, pics_list, gdep_list, dep_cache
     )
+
+    if DryRun then return end
 
     build_pics(config.parent_dir, config.style, file_order, dep_cache)
 
