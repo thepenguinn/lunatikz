@@ -894,7 +894,7 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
 
     local exit_stat = os.execute(
         "cd \"" .. parent_dir .. "\" && "
-        .. "pdflatex -halt-on-error -output-directory \""
+        .. "pdflatex -halt-on-error -shell-escape -output-directory \""
         .. StandaloneTmpDir
         .. "\" \""
         .. StandaloneSub
