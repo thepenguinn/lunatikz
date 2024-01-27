@@ -814,8 +814,9 @@ local function gen_standalone_sub(parent_dir, file_name,
     )
 
     doc_class = doc_source:gsub(
-        ".*(\\documentclass[ \n\t]*%[.-/?)[%w%.-_]-%].*",
-        "%1" .. StandaloneMain .. "]{subfiles}\n\n"
+        ".*(\\documentclass[ \n\t]*%[.-/?)[%w%.-_]-%][ \n\t]*{.-}"
+        .. "(.-)\\begin[ \n\t]*{document}.*",
+        "%1" .. StandaloneMain .. "]{subfiles}\n%2\n"
     )
 
     fd = io.open(
