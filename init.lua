@@ -192,6 +192,7 @@ local function get_pics_list(parent_dir, file_name)
             local file_name
             local is_dir
             local file_basename
+            local has_extention
 
             local function process_includegraphics(fstarg)
 
@@ -255,6 +256,16 @@ local function get_pics_list(parent_dir, file_name)
                     fstarg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
 
                     assert(not (is_dir == "/"), "File name ends with a /")
+
+                    has_extention = file_name:match(".*%.(.-)$")
+
+                    if not has_extention then
+                        tb_log("log",
+                            "get_pics_list: " .. file_name .. " doesn't have any extentions,"
+                            .. " appending .tex"
+                        )
+                        file_name = file_name .. ".tex"
+                    end
 
                     if is_abs_path == "/" then
                         if parent_dir == "" then
