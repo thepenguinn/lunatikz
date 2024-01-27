@@ -180,7 +180,11 @@ local function get_pics_list(parent_dir, file_name)
             local file_fd = io.open(file_path, "r")
             assert(file_fd, "Invalid file path")
 
+            -- stripping comments
+            -- this works, kind of...
             local file_source = file_fd:read("a")
+            :gsub("(\\\\)%%[^\n]-\n", "%1\n")
+            :gsub("([^\\])%%[^\n]*", "%1")
 
             local is_abs_path
             local parent_dir
