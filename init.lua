@@ -54,8 +54,7 @@ local function read_dep_cache(root_dir)
     local mt_for_child = {
         __index = function (tbl, key)
             if key == "parent_nodes"
-                or key == "child_nodes"
-                or key == "build_child_nodes" then
+                or key == "child_nodes" then
                 local val = {}
                 rawset(tbl, key, val)
                 return val
@@ -554,8 +553,8 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
     if gdep_list[key].dep_added then
         if gdep_list[key].from_child
-            and dep_cache[key].build_child_nodes
-            and dep_cache[key].build_child_nodes[
+            and dep_cache[key][style .. "_build_child_nodes"]
+            and dep_cache[key][style .. "_build_child_nodes"][
             gdep_list[key].from_child
             ] then
             print("Returned")
@@ -571,9 +570,9 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
         for child in pairs(child_nodes) do
 
-            erase_build_child_nodes(dep_cache[child].build_child_nodes)
+            erase_build_child_nodes(dep_cache[child][style .. "_build_child_nodes"])
 
-            dep_cache[child].build_child_nodes = nil
+            dep_cache[child][style .. "_build_child_nodes"] = nil
         end
 
     end
@@ -653,12 +652,12 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             dep_cache[parent].child_nodes[key] = true
         end
 
-        erase_build_child_nodes(dep_cache[key].build_child_nodes)
-        dep_cache[key].build_child_nodes = nil
+        erase_build_child_nodes(dep_cache[key][style .. "_build_child_nodes"])
+        dep_cache[key][style .. "_build_child_nodes"] = nil
 
         if gdep_list[key].from_child then
-            dep_cache[key].build_child_nodes = {}
-            dep_cache[key].build_child_nodes[
+            dep_cache[key][style .. "_build_child_nodes"] = {}
+            dep_cache[key][style .. "_build_child_nodes"][
             gdep_list[key].from_child
             ] = true
         end
@@ -672,14 +671,14 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
         local child_need_to_build = false
 
         if gdep_list[key].from_child
-            and dep_cache[key].build_child_nodes
-            and not dep_cache[key].build_child_nodes[
+            and dep_cache[key][style .. "_build_child_nodes"]
+            and not dep_cache[key][style .. "_build_child_nodes"][
             gdep_list[key].from_child
             ] then
 
             child_need_to_build = true
 
-            dep_cache[key].build_child_nodes[
+            dep_cache[key][style .. "_build_child_nodes"][
             gdep_list[key].from_child
             ] = true
 
@@ -694,10 +693,10 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
                 gdep_list[parent].from_child = nil
 
                 if parent_need_to_build then
-                    dep_cache[parent].build_child_nodes =
-                    dep_cache[parent].build_child_nodes or {}
+                    dep_cache[parent][style .. "_build_child_nodes"] =
+                    dep_cache[parent][style .. "_build_child_nodes"] or {}
 
-                    dep_cache[parent].build_child_nodes[key] = true
+                    dep_cache[parent][style .. "_build_child_nodes"][key] = true
 
                     need_to_build = parent_need_to_build
                 end
