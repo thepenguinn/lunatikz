@@ -1234,7 +1234,7 @@ local function parse_args(args)
 
 end
 
-local function main(args)
+local function lunatikz(args)
 
     local config = parse_args(args)
 
@@ -1273,4 +1273,4 @@ local function main(args)
 
 end
 
-return main(arg)
+return lunatikz(arg)
