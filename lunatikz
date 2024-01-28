@@ -578,14 +578,14 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
     end
 
     if not dep_cache[key]
-        or not dep_cache[key][style .. "_lmodt"]
-        or dep_cache[key][style .. "_lmodt"] < gdep_list[key].lmodt then
+        or not dep_cache[key].lmodt
+        or dep_cache[key].lmodt < gdep_list[key].lmodt then
 
         if not dep_cache[key] then
             tb_log("log", "no dep_cache: " .. key)
-        elseif not dep_cache[key][style .. "_lmodt"] then
+        elseif not dep_cache[key].lmodt then
             tb_log("log", "no lmodt: " .. key)
-        elseif dep_cache[key][style .. "_lmodt"] < gdep_list[key].lmodt then
+        elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
             tb_log("log", "file modified: " .. key)
         end
 
@@ -628,11 +628,11 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             for parent in pairs(dep_cache[key].parent_nodes) do
                 dep_cache[parent].child_nodes[key] = nil
             end
-            dep_cache[key][style .. "_lmodt"] = gdep_list[key].lmodt
+            dep_cache[key].lmodt = gdep_list[key].lmodt
         else
             dep_cache[key] = {
                 parent_dir = gdep_list[key].parent_dir,
-                [style .. "_lmodt"] = gdep_list[key].lmodt
+                lmodt = gdep_list[key].lmodt
             }
         end
 
@@ -645,7 +645,7 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
                 )
                 dep_cache[parent] = {
                     parent_dir = gdep_list[parent].parent_dir,
-                    [style .. "_lmodt"] = nil
+                    lmodt = nil
                 }
             end
             dep_cache[key].parent_nodes[parent] = true
