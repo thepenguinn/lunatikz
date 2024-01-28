@@ -766,7 +766,27 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
         if need_to_build then
             need_to_build = false
+            dep_cache[key].style = style
         else
+            if not dep_cache[key].style
+                or dep_cache[key].style ~= style then
+
+                os.execute(
+                    "cp \""
+                    .. dep_cache[key].parent_dir
+                    .. "/"
+                    .. style
+                    .. "/"
+                    .. key
+                    .. ".pdf\" \""
+                    .. dep_cache[key].parent_dir
+                    .. "/"
+                    .. key
+                    .. ".pdf\""
+                )
+
+                dep_cache[key].style = style
+            end
             pics_list[key] = nil
         end
 
@@ -1282,7 +1302,6 @@ local function lunatikz(args)
     clean_standalone_files(config.root_dir, config.parent_dir)
 
     if TouchFile then
-        os.execute = print
         os.execute(
             "touch \""
             .. config.parent_dir
