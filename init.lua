@@ -557,7 +557,6 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             and dep_cache[key][style .. "_build_child_nodes"][
             gdep_list[key].from_child
             ] then
-            print("Returned")
             return gdep_list[key].need_to_build
         end
     end
@@ -905,10 +904,6 @@ end
 local function check_file(file_path)
     local fd
 
-    if not file_path:match("%.tex$") then
-        return false
-    end
-
     fd = io.open(file_path, "r")
 
     if fd then
@@ -1177,7 +1172,7 @@ local function parse_args(args)
 
     assert(file ~= "", "parse_args: give me a file")
 
-    assert(check_file(file),
+    assert(file:match("%.tex$") and check_file(file),
         "parse_args: invalid file, or file doesn't end with .tex"
     )
 
@@ -1218,7 +1213,7 @@ local function parse_args(args)
         end
 
         style = style_source:match(
-            "\\" .. style_macro .. "[ \n\t]{(.-)}"
+            "\\" .. style_macro .. "[ \n\t]*{(.-)}"
         ) or ""
 
         style = style:gsub("[\n\\]", "")
@@ -1242,6 +1237,10 @@ end
 local function main(args)
 
     local config = parse_args(args)
+
+    tb_log("log",
+        "using " .. config.style .. " as style"
+    )
 
     local pics_list = get_pics_list(config.parent_dir, config.file_name)
 
