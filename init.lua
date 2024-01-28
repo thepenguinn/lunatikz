@@ -4,6 +4,7 @@ local StandaloneMain   = "_standalone_main"
 local StandaloneSub    = "_standalone_sub"
 local StandaloneTmpDir = "_standalone_tmp"
 local DryRun = false
+local TouchFile = nil
 
 local function tb_log(lvl, msg)
     if lvl == "warn" then
@@ -1122,6 +1123,9 @@ local function usage(exe)
         .. "                         forward slashes, if the exist they will be \n"
         .. "                         stripped.\n"
         .. "    --style-root-path    style file will be relative path from root dir.\n"
+        .. "\n"
+        .. "    --touch-file         touches that file if we needed to build anything.\n"
+        .. "    --dry-run            produces the standalone files and exits.\n"
     )
 
     os.exit()
@@ -1159,6 +1163,12 @@ local function parse_args(args)
             end
         elseif arg.val == "--style-root-path" then
             style_root_path = true
+        elseif arg.val == "--touch-file" then
+            tmp = arg.peek_next()
+            if tmp and tmp ~= "" and not tmp:match("^%-") then
+                TouchFile = tmp
+                arg.skip_next()
+            end
         elseif arg.val == "--dry-run" then
             DryRun = true
         elseif not arg.val:match("^%-") then
@@ -1270,6 +1280,17 @@ local function lunatikz(args)
     write_dep_cache(config.root_dir, dep_cache)
 
     clean_standalone_files(config.root_dir, config.parent_dir)
+
+    if TouchFile then
+        os.execute = print
+        os.execute(
+            "touch \""
+            .. config.parent_dir
+            .. "/tikzpics/"
+            .. TouchFile
+            .. "\""
+        )
+    end
 
 end
 
