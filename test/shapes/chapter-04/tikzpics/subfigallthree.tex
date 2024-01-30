@@ -1,0 +1,12 @@
+\ctikzsubcircuitdef{subfigallthree} {
+    center%
+} {
+    coordinate (#1-center)
+    \subfigonetriangle {#1-triangle} {center}
+    (#1-triangle-center) ++(3,0)
+    \subfigonesquare {#1-square} {center}
+    (#1-triangle-center) ++(-3,0)
+    \subfigonecircle {#1-circle} {center}
+}
+
+\ctikzsubcircuitactivate{subfigallthree}

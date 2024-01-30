@@ -1,0 +1,12 @@
+\ctikzsubcircuitdef{subfigtwotriangles} {
+    center%
+} {
+    \subfigonetriangle {#1-triangle1} {center}
+    (#1-triangle1-center)
+    ++(1.5,0)
+    coordinate (#1-center)
+    ++(1.5,0)
+    \subfigonetriangle {#1-triangle2} {center}
+}
+
+\ctikzsubcircuitactivate{subfigtwotriangles}

@@ -1,0 +1,10 @@
+\ctikzsubcircuitdef{subfigonecircle} {
+    center%
+} {
+    coordinate (#1-center)
+    circle [radius = 1]
+    ++(0.1,0)
+    circle [radius = 1]
+}
+
+\ctikzsubcircuitactivate{subfigonecircle}

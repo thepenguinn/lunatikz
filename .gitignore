@@ -1,1 +1,7 @@
 test_dir/
+*/tikzpics/*/
+*.tstp
+*.pdf
+*.aux
+*.log
+dep_cache.lua

@@ -1,0 +1,12 @@
+\ctikzsubcircuitdef{subfigtwosquares} {
+    center%
+} {
+    \subfigonesquare {#1-square1} {center}
+    (#1-square1-center)
+    ++(1.5,0)
+    coordinate (#1-center)
+    ++(1.5,0)
+    \subfigonesquare {#1-square2} {center}
+}
+
+\ctikzsubcircuitactivate{subfigtwosquares}

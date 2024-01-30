@@ -1,0 +1,24 @@
+\ctikzsubcircuitdef{subfigonetriangle} {
+    center%
+} {
+    coordinate (#1-center)
+    ++(0,1)
+    coordinate (#1-top)
+    (#1-center)
+    ++(210:1)
+    coordinate (#1-left)
+    (#1-center)
+    ++(-30:1)
+    coordinate (#1-right)
+    %%
+    (#1-top)
+    -- (#1-left)
+    -- (#1-right)
+    -- (#1-top)
+    %%
+    (#1-left)
+    -- ++($(#1-top)-(#1-right)$)
+    -- (#1-right)
+}
+
+\ctikzsubcircuitactivate{subfigonetriangle}
