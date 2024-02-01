@@ -1,4 +1,6 @@
-#!/data/data/com.termux/files/usr/bin/lua5.3
+#!/usr/bin/env lua
+
+-- #!/data/data/com.termux/files/usr/bin/lua5.3
 
 local StandaloneMain   = "_standalone_main"
 local StandaloneSub    = "_standalone_sub"
