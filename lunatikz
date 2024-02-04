@@ -1315,4 +1315,34 @@ local function lunatikz(args)
 
 end
 
-return lunatikz(arg)
+-- Param cur_dir string? needs to the absolute path
+local function root_dir(cur_dir)
+
+    local parent_dir
+    local stat = os.execute("[ -d \"" .. cur_dir .. "/.lunatikz\" ]")
+
+    parent_dir = cur_dir:gsub("(.*)/.-$", "%1")
+
+    print(stat)
+    print(cur_dir)
+    print(parent_dir)
+
+    if stat then
+        return cur_dir
+    elseif cur_dir ~= "" then
+        return root_dir(parent_dir)
+    else
+        return nil
+    end
+
+end
+
+local tmp_fd = io.popen("readlink -e test/shapes/chapter-01/chapter.tex")
+
+if not tmp_fd then return nil end
+
+local path = tmp_fd:read("a"):gsub("(.*)/.-$", "%1")
+
+print("Root Dir is ", root_dir(path))
+
+-- return lunatikz(arg)
