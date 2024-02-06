@@ -1,0 +1,116 @@
+@document.meta
+title: SPEC
+description: specification for lunatikz
+authors: Daniel
+categories: spec
+cpreated: 2024-02-05T17:13:44+0530
+updated: 2024-02-06T17:57:58+0530
+version: 1.1.1
+@end
+
+* Disclaimer
+
+  None of the below spec is implemented.
+
+* Make lunatikz similar to git
+
+  - Need a `.lunatikz` directory
+  - `init` to initialize a lunatikz directory
+  - Move dep_cache to `.lunatikz`
+  - `build` command to build the pics
+  - `config` file just like git and a `config` subcommand
+  - Ability to `add` pics
+
+* init subcommand
+
+  `init` initializes a lunatikz directory. `lunatikz init [dir]` will
+  initialize a lunatikz directory in the `dir`. `dir` is optional, if nothing
+  is given, lunatikz will initialize the current directory as a lunatikz
+  directory. If ran inside another lunatikz directory, lunatikz will refuse to
+  initialize the directory as a lunatikz directory.
+
+* config subcommand
+
+  lunatikz `config` will help the user to set configuration on a per project
+  basis, or a global wide basis. The global `config` will be read everytime the
+  user invokes lunatikz then lunatikz will read per project `config` and merges
+  it with global `config`. The per project `config` can override the global
+  `config`.
+
+** configurable parameters
+
+*** pics-directory (default tikzpics)
+
+    The directory where pics are stored.
+
+*** skip-pics-checking (default false)
+
+    If true, skips reading all the files exists in `pics-directory` instead
+    reads the pics list from `dep_list`, and the user can add a file to this
+    list by using `lunatikz add path-to-file`.
+
+*** margin (default 0pt)
+
+    This is the margin that is passed to the `\\documentclass[tikz, margin=0pt]{standalone}`
+
+*** style (default default)
+
+    `style` determines the style of the current build. Setting `style` will overrides
+    `style-file` and `style-macro`.
+
+*** style-file (default nil)
+
+    Lets say, user wants to build the pic with a different colorscheme. Each
+    different scheme can be seen as a different `style`. Usually, the user will
+    set some macro to a different colorscheme in some file. Therefore user can
+    set this `style-file` to that file, and lunatikz will check for that macro
+    (see `style-macro` for setting which macro to check) in that file. And uses
+    that style.
+
+*** style-macro (default nil)
+
+    If `style-macro` is set lunatikz will look for first instance of this macro
+    and reads its first argument as the `style`.
+
+    Note: Both `style-file` and `style-macro` should be setted in order for
+    this to work.
+
+*** style-root-path (default false)
+
+    If the `style-path` is relative, ie does not start with a `/`, by default
+    lunatikz will assume that file to be relative to the current directory from
+    which lunatikz was invoked. If `style-root-path` is true, then that path
+    will be assumed to be relative to the root directory of the project.
+
+*** touch-file (default nil)
+
+    If any of the files are changed or any of the pics that are needed by the project
+    file needed to be build lunatikz will touch this `touch-file`. Note: This file will
+    be relative to `[parent-dir-of-the-file]/[pics-directory]`, if its a relative file,
+    ie, does not starts with a `/`.
+
+*** watch-list (default nil)
+
+    TODO: Needs revision
+
+    `watch-list` will be a list of files, if modified lunatikz will compile all of the
+    pics needed for the file.
+
+* build subcommand
+
+  `build [file]` subcommand will build pics for the specified file. If its
+  inside the `pics-directory` then lunatikz will check for `\\begin{tikzpics}`
+  and `\\end{tikzpics}` block. If it finds it, lunatikz will build that pic.
+  Otherwise lunatikz will politely refuse. `--force` will overrides this
+  behaviour, therefore lunatikz will blindly builds the pic. If it fails,
+  lunatikz will call `pdflatex` /miserable/ and exits.
+
+* add subcommand
+
+  lunatikz will read dep_list.lua which contains the list of end pics. If
+  `skip_pics_checking` is false (default is false), then lunatikz will check
+  for all the `.tex` files in the directories having name `pics-directory` and
+  merges them to this table. `add [file]` subcommand will add a pic (a `.tex` file) to
+  this dep_list.lua file. If the file is not in directory named `pics-directory`, lunatikz
+  will refuse to add it to the list politely. Ofcourse `--force` will forces lunatikz
+  to add it to the list.
