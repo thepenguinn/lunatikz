@@ -1266,7 +1266,7 @@ local function parse_args(args)
 
 end
 
-local function lunatikz(args)
+local function main(args)
 
     local config = parse_args(args)
 
@@ -1323,9 +1323,9 @@ local function root_dir(cur_dir)
 
     parent_dir = cur_dir:gsub("(.*)/.-$", "%1")
 
-    print(stat)
-    print(cur_dir)
-    print(parent_dir)
+    -- print(stat)
+    -- print(cur_dir)
+    -- print(parent_dir)
 
     if stat then
         return cur_dir
@@ -1337,12 +1337,62 @@ local function root_dir(cur_dir)
 
 end
 
-local tmp_fd = io.popen("readlink -e test/shapes/chapter-01/chapter.tex")
+local function lunatikz_init(cur_dir)
+end
 
-if not tmp_fd then return nil end
+local function init_parse_args(args)
+end
 
-local path = tmp_fd:read("a"):gsub("(.*)/.-$", "%1")
+local function build_parse_args(args)
+end
 
-print("Root Dir is ", root_dir(path))
+local function config_parse_args(args)
+end
 
--- return lunatikz(arg)
+local function add_parse_args(args)
+end
+
+local function lunatikz(args)
+
+    local tmp_fd = io.popen("readlink -e test/shapes/chapter-01/chapter.tex")
+    if not tmp_fd then return nil end
+
+    local path = tmp_fd:read("a"):gsub("(.*)/.-$", "%1")
+    tmp_fd:close()
+
+    local root_dir = root_dir(path)
+
+    local iter = loop_tbl(args)
+    local fstarg = iter()
+
+    if not fstarg then return nil end
+
+    fstarg = fstarg.val
+
+    print(root_dir)
+
+    if fstarg == "init" then
+        init_parse_args(iter)
+        print("We are going to init")
+    elseif fstarg == "build" then
+        build_parse_args(iter)
+        return
+    elseif fstarg == "config" then
+        config_parse_args(iter)
+        return
+    elseif fstarg == "add" then
+        add_parse_args(iter)
+        return
+    else
+
+        return
+    end
+
+end
+
+return lunatikz(arg)
+
+-- print("Root Dir is ", root_dir(path))
+
+
+-- return main(arg)
