@@ -4,7 +4,7 @@ description: specification for lunatikz
 authors: Daniel
 categories: spec
 cpreated: 2024-02-05T17:13:44+0530
-updated: 2024-02-06T17:57:58+0530
+updated: 2024-02-07T19:39:24+0530
 version: 1.1.1
 @end
 
@@ -84,17 +84,18 @@ version: 1.1.1
 
 *** touch-file (default nil)
 
-    If any of the files are changed or any of the pics that are needed by the project
-    file needed to be build lunatikz will touch this `touch-file`. Note: This file will
-    be relative to `[parent-dir-of-the-file]/[pics-directory]`, if its a relative file,
-    ie, does not starts with a `/`.
+    If any of the files are changed or any of the pics that are needed by the
+    project file needed to be build lunatikz will touch this `touch-file`.
+    Note: This file will be relative to
+    `[parent-dir-of-the-file]/[pics-directory]`, if its a relative file, ie,
+    does not starts with a `/`.
 
 *** watch-list (default nil)
 
     TODO: Needs revision
 
-    `watch-list` will be a list of files, if modified lunatikz will compile all of the
-    pics needed for the file.
+    `watch-list` will be a list of files, if modified lunatikz will compile all
+    of the pics needed for the file.
 
 * build subcommand
 
@@ -110,7 +111,7 @@ version: 1.1.1
   lunatikz will read dep_list.lua which contains the list of end pics. If
   `skip_pics_checking` is false (default is false), then lunatikz will check
   for all the `.tex` files in the directories having name `pics-directory` and
-  merges them to this table. `add [file]` subcommand will add a pic (a `.tex` file) to
-  this dep_list.lua file. If the file is not in directory named `pics-directory`, lunatikz
-  will refuse to add it to the list politely. Ofcourse `--force` will forces lunatikz
-  to add it to the list.
+  merges them to this table. `add [file]` subcommand will add a pic (a `.tex`
+  file) to this dep_list.lua file. If the file is not in directory named
+  `pics-directory`, lunatikz will refuse to add it to the list politely.
+  Ofcourse `--force` will forces lunatikz to add it to the list.
