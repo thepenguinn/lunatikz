@@ -336,10 +336,10 @@ end
 -- Param: file_path, relative path of file from current
 --        working directory
 -- Return: root_dir(string), root_file(string)
-local function get_root_dir(file_path)
+local function get_root_dir_from_file(file_path)
 
     assert(type(file_path) == "string",
-        "get_root_dir: Expected file_path to be string type"
+        "get_root_dir_from_file: Expected file_path to be string type"
     )
 
     local parent_dir
@@ -1212,7 +1212,7 @@ local function parse_args(args)
 
     config.parent_dir, config.file_name = split_path(file)
 
-    config.root_dir, config.root_file = get_root_dir(file)
+    config.root_dir, config.root_file = get_root_dir_from_file(file)
 
     local style_source
 
@@ -1316,7 +1316,7 @@ local function main(args)
 end
 
 -- Param cur_dir string? needs to the absolute path
-local function root_dir(cur_dir)
+local function get_root_dir_from_dir(cur_dir)
 
     local parent_dir
     local stat = os.execute("[ -d \"" .. cur_dir .. "/.lunatikz\" ]")
@@ -1330,7 +1330,7 @@ local function root_dir(cur_dir)
     if stat then
         return cur_dir
     elseif cur_dir ~= "" then
-        return root_dir(parent_dir)
+        return get_root_dir_from_dir(parent_dir)
     else
         return nil
     end
@@ -1352,6 +1352,24 @@ end
 local function add_parse_args(args)
 end
 
+local function read_config(root_dir)
+
+    if not root_dir then
+        return {}
+    end
+
+    local config_file = io.open(root_dir .. "/.lunatikz/config", "r")
+    local config = nil
+
+    if config_file then
+        config_file:close()
+        local config = dofile(root_dir .. "/.lunatikz/config")
+    end
+
+    return config or {}
+
+end
+
 local function lunatikz(args)
 
     local tmp_fd = io.popen("readlink -e test/shapes/chapter-01/chapter.tex")
@@ -1360,10 +1378,12 @@ local function lunatikz(args)
     local path = tmp_fd:read("a"):gsub("(.*)/.-$", "%1")
     tmp_fd:close()
 
-    local root_dir = root_dir(path)
+    local root_dir = get_root_dir_from_dir(path)
 
     local iter = loop_tbl(args)
     local fstarg = iter()
+
+    local project_config = read_config(root_dir)
 
     if not fstarg then return nil end
 
