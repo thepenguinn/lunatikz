@@ -4,7 +4,7 @@ description: specification for lunatikz
 authors: Daniel
 categories: spec
 cpreated: 2024-02-05T17:13:44+0530
-updated: 2024-02-07T21:04:10+0530
+updated: 2024-02-09T05:39:02+0530
 version: 1.1.1
 @end
 
@@ -24,14 +24,17 @@ version: 1.1.1
 * init subcommand
 
   `init` initializes a lunatikz directory. `lunatikz init [dir]` will
-  initialize a lunatikz directory in the `dir`. `dir` is optional, if nothing
-  is given, lunatikz will initialize the current directory as a lunatikz
-  directory. If ran inside another lunatikz directory, ie, current directory or
-  `dir` has a `.lunatikz` directory lunatikz will refuse to initialize the
-  directory as a lunatikz directory. Otherwise, lunatikz will initializes the
-  dir as a lunatikz directory.
+  initialize a lunatikz directory in the `dir`. `dir` is optional and can be
+  more than one. if nothing is given, lunatikz will initialize the current
+  directory as a lunatikz directory. If ran inside another lunatikz directory,
+  ie, current directory or `dir` has a `.lunatikz` directory lunatikz will
+  refuse to initialize the directory as a lunatikz directory (because it's
+  already one). Otherwise, lunatikz will initializes the dir as a lunatikz
+  directory.
 
-  If an invalid dir was given lunatikz will exit with a warning.
+  If a non existant `dir` was given, lunatikz will create that directory and
+  initializes it as a lunatikz directory.
+
 
 * config subcommand
 
@@ -103,12 +106,16 @@ version: 1.1.1
 
 * build subcommand
 
-  `build [file]` subcommand will build pics for the specified file. If its
-  inside the `pics-directory` then lunatikz will check for `\\begin{tikzpics}`
-  and `\\end{tikzpics}` block. If it finds it, lunatikz will build that pic.
-  Otherwise lunatikz will politely refuse. `--force` will overrides this
-  behaviour, therefore lunatikz will blindly builds the pic. If it fails,
-  lunatikz will call `pdflatex` /miserable/ and exits.
+  `build [file]` subcommand will build pics for the specified file. `file` is
+  optional. If no files are given, lunatikz will look for `build-entry` for the
+  current directory in the local config, if lunatikz finds it, and the file
+  exists, lunatikz will build pics for that. If the current directory is inside
+  a `pics-directory` then lunatikz will check for `\\begin{tikzpics}` and
+  `\\end{tikzpics}` block, in that file. If it finds it, lunatikz will build
+  that pic. If the current working directory is inside a `pics-directory` then
+  `file` is mandatory. Otherwise lunatikz will politely refuse. `--force` will
+  overrides this behaviour, therefore lunatikz will blindly builds the pic. If
+  it fails, lunatikz will call `pdflatex` /miserable/ and exits.
 
 * add subcommand
 
