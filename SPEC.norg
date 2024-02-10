@@ -4,7 +4,7 @@ description: specification for lunatikz
 authors: Daniel
 categories: spec
 cpreated: 2024-02-05T17:13:44+0530
-updated: 2024-02-09T05:39:02+0530
+updated: 2024-02-10T20:17:36+0530
 version: 1.1.1
 @end
 
@@ -119,10 +119,37 @@ version: 1.1.1
 
 * add subcommand
 
-  lunatikz will read dep_list.lua which contains the list of end pics. If
-  `skip_pics_checking` is false (default is false), then lunatikz will check
-  for all the `.tex` files in the directories having name `pics-directory` and
-  merges them to this table. `add [file]` subcommand will add a pic (a `.tex`
-  file) to this dep_list.lua file. If the file is not in directory named
-  `pics-directory`, lunatikz will refuse to add it to the list politely.
-  Ofcourse `--force` will forces lunatikz to add it to the list.
+  `add` will add entries to different lists. List of lists.
+
+*** dep-list
+
+    `dep-list` will be the list of dependency files. Basically they are the
+    files in the `pics.directory`. User can add files to this list and disable
+    `pics.checking`. This will skip checking for dependencies in the
+    `pics.directory`. This will improve the performance. But the user needs to
+    add the dependency files to this list, as they add files to the
+    `pics.directory`.
+
+    Usage will be `lunatikz add --dep-list [files]`
+
+    `files` can be the list of files. And it is mandatory to specify the
+    `files`. It can be relative or absolute paths. But internally lunatikz will
+    store them as the relative paths from the root directory of the project.
+
+*** build-entry
+
+    `build-entry` will be the list of files that are used when `lunatikz build`
+    is invoked without any files as arguments. lunatikz will check for the
+    current directory in this list, and if it finds an entry lunatikz will
+    build that file. Only one file can be specified for one directory.
+
+    Usage will be `lunatikz add --build-entry [files]`
+
+    `files` can be the list of files. And it is mandatory to specify the
+    `files`. It can be relative or absolute paths. But internally lunatikz will
+    store them as the relative paths from the root directory of the project.
+
+* remove subcommand
+
+  `remove` will remove entries to different lists. `remove` removes what `add`
+  adds
