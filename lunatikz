@@ -1520,7 +1520,7 @@ local function lunatikz_config(args, args_iter, gconfig, lconfig, root_dir)
 
     local arg_config = parse_args_config(args_iter)
 
-    -- todo: implement a pretty_print() to print the config
+    -- TODO: implement a pretty_print() to print the config
     if #args == 1 then
         print("----------------------------------")
         for key, val in pairs(lconfig) do
