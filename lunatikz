@@ -1520,6 +1520,21 @@ local function lunatikz_config(args, args_iter, gconfig, lconfig, root_dir)
 
     local arg_config = parse_args_config(args_iter)
 
+    -- todo: implement a pretty_print() to print the config
+    if #args == 1 then
+        print("----------------------------------")
+        for key, val in pairs(lconfig) do
+            print(key, nil, val)
+        end
+        print("----------------------------------")
+    elseif #args == 2 and arg_config.global then
+        print("----------------------------------")
+        for key, val in pairs(gconfig) do
+            print(key, nil, val)
+        end
+        print("----------------------------------")
+    end
+
     if arg_config.global then
         if arg_config.clear then
             for _, arg in ipairs(args) do
@@ -1577,6 +1592,7 @@ local function lunatikz(args)
         print("We are going to build")
     elseif fstarg == "config" then
         lunatikz_config(args, args_iter, gconfig, lconfig, root_dir)
+        print("We are going to config")
     elseif fstarg == "add" then
         lunatikz_add(args_iter, config, root_dir)
     else
