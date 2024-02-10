@@ -86,7 +86,7 @@ local function read_dep_cache(root_dir)
 
 end
 
-local function write_dep_cache(root_dir, dep_cache)
+local function write_dep_cache(path, dep_cache)
 
     local function writetable(fd, tbl, depth)
 
@@ -122,21 +122,20 @@ local function write_dep_cache(root_dir, dep_cache)
         end
     end
 
-    os.execute(
-        "mkdir \""
-        .. root_dir .. "/tikzpics\" > /dev/null 2>&1"
-    )
+    -- os.execute(
+    --     "mkdir \""
+    --     .. root_dir .. "/tikzpics\" > /dev/null 2>&1"
+    -- )
 
     local file_fd = io.open(
-        root_dir
-        .. "/tikzpics/dep_cache.lua",
+        path,
         "w"
     )
 
     assert(file_fd,
         "Couldn't open "
-        .. root_dir
-        .. "/tikzpics/dep_cache.lua to write dep_cache"
+        .. path
+        .. " to write dep_cache"
     )
 
 
@@ -1343,15 +1342,21 @@ local function read_config(root_dir)
         return {}
     end
 
-    local config_file = io.open(root_dir .. "/.lunatikz/config", "r")
+    local config_file = io.open(root_dir .. "/config", "r")
     local config = nil
 
     if config_file then
         config_file:close()
-        local config = dofile(root_dir .. "/.lunatikz/config")
+        config = dofile(root_dir .. "/config")
     end
 
     return config or {}
+
+end
+
+local function write_config(path, config)
+    -- TODO: implement this properly
+    write_dep_cache(path, config)
 
 end
 
@@ -1380,7 +1385,93 @@ local function parse_args_build(args)
 
 end
 
-local function parse_args_config(args)
+local function parse_args_config(args, gconfig, lconfig)
+
+    local val
+    local arg_config = {}
+    local nextarg
+
+    for arg in args do
+
+        val = arg.val
+
+        if val == "--global" then
+            arg_config.global = true
+        elseif val == "--clear" then
+            arg_config.clear = true
+        elseif val == "pics.directory" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                -- TODO: nextarg could be an empty string
+                arg_config["pics.directory"] = nextarg:gsub("[/\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: pics.directory takes an argument"
+                )
+            end
+        elseif val == "pics.checking.enable" then
+                arg_config["pics.checking.enabled"] = true
+        elseif val == "pics.checking.disable" then
+                arg_config["pics.checking.enabled"] = false
+        elseif val == "margin" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["margin"] = nextarg:gsub("[/\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: margin takes an argument"
+                )
+            end
+        elseif val == "style" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["style"] = nextarg:gsub("[/\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: style takes an argument"
+                )
+            end
+        elseif val == "style.file.path" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["style.file.path"] = nextarg:gsub("[\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: style.file.path takes an argument"
+                )
+            end
+        elseif val == "style.macro" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["style.macro"] = nextarg:gsub("[/\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: style.macro takes an argument"
+                )
+            end
+        elseif val == "style.file.fromroot" then
+            arg_config["style.file.fromroot"] = true
+        elseif val == "touch.enable" then
+            arg_config["touch.enabled"] = true
+        elseif val == "touch.disable" then
+            arg_config["touch.enabled"] = false
+        elseif val == "touch.file" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["touch.file"] = nextarg:gsub("[\n]", "")
+            elseif not arg_config.clear then
+                tb_log( "warn",
+                    "parse_args_init: touch.file takes an argument"
+                )
+            end
+        -- elseif val == "watch.list" then
+        end
+
+        print("from config " .. val)
+    end
+
+    return arg_config
+
 end
 
 local function parse_args_add(args)
@@ -1425,9 +1516,30 @@ local function lunatikz_add(args, config, root_dir)
 
 end
 
-local function lunatikz_config(args, config, root_dir)
+local function lunatikz_config(args, args_iter, gconfig, lconfig, root_dir)
 
-    local arg_config = parse_args_config(args)
+    local arg_config = parse_args_config(args_iter)
+
+    if arg_config.global then
+        if arg_config.clear then
+            for _, arg in ipairs(args) do
+                gconfig[arg] = nil
+            end
+        else
+            print("booo")
+        end
+    else
+        if arg_config.clear then
+            for _, arg in ipairs(args) do
+                lconfig[arg] = nil
+            end
+        else
+            for key, val in pairs(arg_config) do
+                lconfig[key] = val
+            end
+        end
+        write_config(root_dir .. "/.lunatikz/config", lconfig)
+    end
 
 end
 
@@ -1444,7 +1556,12 @@ local function lunatikz(args)
     local args_iter = loop_tbl(args)
     local fstarg = args_iter()
 
-    local project_config = read_config(root_dir)
+    local gconfig = {}
+    local lconfig = read_config(root_dir .. "/.lunatikz")
+
+    for key, val in pairs(lconfig) do
+        print(key, val)
+    end
 
     if not fstarg then return nil end
 
@@ -1458,17 +1575,17 @@ local function lunatikz(args)
     elseif fstarg == "build" then
         lunatikz_build(args_iter, config, root_dir)
         print("We are going to build")
-        return
     elseif fstarg == "config" then
-        lunatikz_config(args_iter, config, root_dir)
-        return
+        lunatikz_config(args, args_iter, gconfig, lconfig, root_dir)
     elseif fstarg == "add" then
         lunatikz_add(args_iter, config, root_dir)
-        return
     else
-        return
+        tb_log("warn",
+            "lunatikz: " .. fstarg .. " is an unknown subcommand"
+        )
     end
 
+    return
 end
 
 return lunatikz(arg)
