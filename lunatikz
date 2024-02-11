@@ -1336,18 +1336,14 @@ local function get_root_dir_from_dir(cur_dir)
 
 end
 
-local function read_config(root_dir)
+local function read_config(file_path)
 
-    if not root_dir then
-        return {}
-    end
-
-    local config_file = io.open(root_dir .. "/config", "r")
+    local config_file = io.open(file_path, "r")
     local config = nil
 
     if config_file then
         config_file:close()
-        config = dofile(root_dir .. "/config")
+        config = dofile(file_path)
     end
 
     return config or {}
@@ -1472,7 +1468,54 @@ local function parse_args_config(args_iter)
 
 end
 
-local function parse_args_add(args)
+local function parse_args_add_remove(args_iter, root_dir)
+
+    local val
+    local arg_config = {}
+    local cur_list = "dep_list"
+    local stat
+    local abs_path
+    local tmp_fd
+
+    arg_config["dep_list"] = {}
+    arg_config["build_entry"] = {}
+
+    for arg in args_iter do
+
+        val = arg.val
+
+        if not val:match("^%-%-") then
+
+            stat = os.execute("[ -f \"" .. val .. "\" ]")
+
+            assert(stat,
+                "parse_args_add_remove: " .. val .. " file doesn't exist, exiting"
+            )
+
+            tmp_fd = io.popen(
+                "readlink -e \"" .. val .. "\""
+            )
+            assert(tmp_fd)
+
+            abs_path = tmp_fd:read("a"):gsub("\n", "")
+            tmp_fd:close()
+
+            arg_config[cur_list]
+            [#arg_config[cur_list] + 1] = abs_path:gsub("^" .. root_dir .. "/", "")
+
+        elseif val == "--dep-list" then
+            cur_list = "dep_list"
+        elseif val == "--build-entry" then
+            cur_list = "build_entry"
+        else
+            assert(false,
+                "parse_args_add_remove: " .. val .. " unknown option, exiting"
+            )
+        end
+    end
+
+    return arg_config
+
 end
 
 local function lunatikz_init(data)
@@ -1504,15 +1547,45 @@ local function lunatikz_init(data)
 
 end
 
-local function lunatikz_build(args, config, root_dir)
+local function lunatikz_build(data)
 
     local arg_config = parse_args_build(args)
 
 end
 
-local function lunatikz_add(args, config, root_dir)
+local function lunatikz_add(data)
 
-    local arg_config = parse_args_add(args)
+    local arg_config = parse_args_add_remove(data.args_iter, data.root_dir)
+    local file_name
+    local parent_dir
+
+    -- Adding to dep_list
+    for _, file_path in ipairs(arg_config.dep_list) do
+
+        parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
+
+        data.dep_list[file_name] = parent_dir
+    end
+
+    -- Adding to build_entry
+    for _, file_path in ipairs(arg_config.build_entry) do
+
+        parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+
+        data.build_entry[parent_dir] = file_name
+    end
+
+    if #arg_config.dep_list > 0 then
+        write_config(data.root_dir .. "/.lunatikz/dep_list", data.dep_list)
+    end
+
+    if #arg_config.build_entry > 0 then
+        write_config(data.root_dir .. "/.lunatikz/build_entry", data.build_entry)
+    end
+
+end
+
+local function lunatikz_remove(data)
 
 end
 
@@ -1570,19 +1643,36 @@ local function lunatikz(args)
     tmp_fd:close()
 
 
+    data.args_iter = loop_tbl(args)
+    local fstarg = data.args_iter()
+
+
     -- TODO: need to implement to read and update
     data.gconfig = {}
 
     data.root_dir = get_root_dir_from_dir(data.cur_dir)
 
     if data.root_dir then
-        data.lconfig = read_config(data.root_dir .. "/.lunatikz")
+
+        -- Reading local config
+        data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
+
+        -- Reading dependency list
+        data.dep_list = read_config(data.root_dir .. "/.lunatikz/dep_list")
+
+        -- Reading build entries
+        data.build_entry = read_config(data.root_dir .. "/.lunatikz/build_entry")
+
     else
+
+        assert(fstarg == "init",
+            "Current directory is not a lunatikz directory,\n"
+            .. "Run `lunatikz init path/to/dir` to initialize the dir as a lunatikz directory"
+        )
         data.lconfig = {}
+
     end
 
-    data.args_iter = loop_tbl(args)
-    local fstarg = data.args_iter()
 
     if not fstarg then return nil end
 
@@ -1601,6 +1691,10 @@ local function lunatikz(args)
         print("We are going to config")
     elseif fstarg == "add" then
         lunatikz_add(data)
+        print("We are going to add")
+    elseif fstarg == "remove" then
+        lunatikz_remove(data)
+        print("We are going to remove")
     else
         tb_log("warn",
             "lunatikz: " .. fstarg .. " is an unknown subcommand"
