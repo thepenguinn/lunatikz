@@ -1503,7 +1503,7 @@ local function parse_args_add_remove(args_iter, root_dir)
             arg_config[cur_list]
             [#arg_config[cur_list] + 1] = abs_path:gsub("^" .. root_dir .. "/", "")
 
-        elseif val == "--dep-list" then
+        elseif val == "--gdep-list" then
             cur_list = "gdep_list"
         elseif val == "--build-entry" then
             cur_list = "build_entry"
