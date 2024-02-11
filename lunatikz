@@ -1685,6 +1685,23 @@ local function lunatikz(args)
         -- Reading local config
         data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
 
+        -- Setting defaults for local config
+        setmetatable(data.lconfig,
+            {
+                __index = {
+                    ["pics.directory"] = "tikzpics",
+                    ["pics.checking.enabled"] = true,
+                    ["margin"] = "0pt",
+                    ["style"] = "default",
+                    ["style.file.path"] = nil,
+                    ["style.macro"] = nil,
+                    ["style.file.fromroot"] = false,
+                    ["touch.enabled"] = false,
+                    ["touch.file"] = "need_to_build",
+                }
+            }
+        )
+
         -- Reading dependency list
         data.dep_list = read_config(data.root_dir .. "/.lunatikz/dep_list")
 
