@@ -1587,6 +1587,34 @@ end
 
 local function lunatikz_remove(data)
 
+    local arg_config = parse_args_add_remove(data.args_iter, data.root_dir)
+    local file_name
+    local parent_dir
+
+    -- Removing to dep_list
+    for _, file_path in ipairs(arg_config.dep_list) do
+
+        parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
+
+        data.dep_list[file_name] = nil
+    end
+
+    -- Removing to build_entry
+    for _, file_path in ipairs(arg_config.build_entry) do
+
+        parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+
+        data.build_entry[parent_dir] = nil
+    end
+
+    if #arg_config.dep_list > 0 then
+        write_config(data.root_dir .. "/.lunatikz/dep_list", data.dep_list)
+    end
+
+    if #arg_config.build_entry > 0 then
+        write_config(data.root_dir .. "/.lunatikz/build_entry", data.build_entry)
+    end
+
 end
 
 local function lunatikz_config(data)
