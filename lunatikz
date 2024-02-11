@@ -1371,11 +1371,20 @@ local function parse_args_init(args_iter)
 
 end
 
-local function parse_args_build(args)
+local function parse_args_build(args_iter)
 
-    for arg in args do
-        print("from build " .. arg.val)
+    local arg_config = {}
+    local val
+
+    for arg in args_iter do
+
+        val = arg.val
+
+        print("from build " .. val)
+        arg_config[#arg_config + 1] = val
     end
+
+    return arg_config
 
 end
 
@@ -1549,7 +1558,13 @@ end
 
 local function lunatikz_build(data)
 
-    local arg_config = parse_args_build(args)
+    local arg_config = parse_args_build(data.args_iter)
+
+    if #arg_config == 0 then
+        print("NO args")
+    end
+
+    -- local pics_list = get_pics_list(config.parent_dir, config.file_name)
 
 end
 
@@ -1680,46 +1695,7 @@ local function lunatikz(args)
 
     data.root_dir = get_root_dir_from_dir(data.cur_dir)
 
-    if data.root_dir then
-
-        -- Reading local config
-        data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
-
-        -- Setting defaults for local config
-        setmetatable(data.lconfig,
-            {
-                __index = {
-                    ["pics.directory"] = "tikzpics",
-                    ["pics.checking.enabled"] = true,
-                    ["margin"] = "0pt",
-                    ["style"] = "default",
-                    ["style.file.path"] = nil,
-                    ["style.macro"] = nil,
-                    ["style.file.fromroot"] = false,
-                    ["touch.enabled"] = false,
-                    ["touch.file"] = "need_to_build",
-                }
-            }
-        )
-
-        -- Reading dependency list
-        data.gdep_list = read_config(data.root_dir .. "/.lunatikz/gdep_list")
-
-        -- Reading build entries
-        data.build_entry = read_config(data.root_dir .. "/.lunatikz/build_entry")
-
-    else
-
-        assert(fstarg == "init",
-            "Current directory is not a lunatikz directory,\n"
-            .. "Run `lunatikz init path/to/dir` to initialize the dir as a lunatikz directory"
-        )
-        data.lconfig = {}
-
-    end
-
-
-    if not fstarg then return nil end
+    if not fstarg then usage(args[0]) end
 
     fstarg = fstarg.val
 
@@ -1728,23 +1704,60 @@ local function lunatikz(args)
     if fstarg == "init" then
         lunatikz_init(data)
         print("We are going to init")
-    elseif fstarg == "build" then
-        lunatikz_build(data)
-        print("We are going to build")
-    elseif fstarg == "config" then
+        return
+    end
+
+    assert(data.root_dir,
+        "Current directory is not a lunatikz directory,\n"
+        .. "Run `lunatikz init path/to/dir` to initialize the dir as a lunatikz directory"
+    )
+
+
+    -- Reading local config
+    data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
+
+    -- Setting defaults for local config
+    setmetatable(data.lconfig, {
+        __index = {
+            ["pics.directory"] = "tikzpics",
+            ["pics.checking.enabled"] = true,
+            ["margin"] = "0pt",
+            ["style"] = "default",
+            ["style.file.path"] = nil,
+            ["style.macro"] = nil,
+            ["style.file.fromroot"] = false,
+            ["touch.enabled"] = false,
+            ["touch.file"] = "need_to_build",
+        }
+    })
+
+    if fstarg == "config" then
         lunatikz_config(data)
         print("We are going to config")
-    elseif fstarg == "add" then
+        return
+    end
+
+    -- Reading dependency list
+    data.gdep_list = read_config(data.root_dir .. "/.lunatikz/gdep_list")
+
+    -- Reading build entries
+    data.build_entry = read_config(data.root_dir .. "/.lunatikz/build_entry")
+
+    if fstarg == "add" then
         lunatikz_add(data)
         print("We are going to add")
     elseif fstarg == "remove" then
         lunatikz_remove(data)
         print("We are going to remove")
+    elseif fstarg == "build" then
+        lunatikz_build(data)
+        print("We are going to build")
     else
         tb_log("warn",
             "lunatikz: " .. fstarg .. " is an unknown subcommand"
         )
     end
+
 
     return
 end
