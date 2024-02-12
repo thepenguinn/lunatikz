@@ -148,7 +148,11 @@ end
 -- Param: file_list a table of paths, should be relative paths from root_dir.
 -- Return: a hashmap with each file name without extention as keys to tables,
 --         and each having the parent_dir(string), and lmodt(nummer) as values
-local function get_pics_list(parent_dir, file_name)
+local function get_pics_list(file_list, pics_list)
+
+    assert(type(pics_list) == "table",
+        "get_pics_list: expected pics_list to be a table"
+    )
 
     -- Param: end_pics_data = {
     --              file_list = { -- a table
@@ -171,11 +175,9 @@ local function get_pics_list(parent_dir, file_name)
 
             local file_path = file.parent_dir .. "/" .. file.file_name
 
-            assert(not (end_pics_data.read_files[file_path]),
-                "Seems like this file has been read: \""
-                .. file_path
-                .. "\""
-            )
+            if end_pics_data.read_files[file_path] then
+                return
+            end
 
             end_pics_data.read_files[file_path] = true
 
@@ -313,9 +315,7 @@ local function get_pics_list(parent_dir, file_name)
 
         end
 
-        if #child_file_list == 0 then
-            return end_pics_data.pics_list
-        else
+        if #child_file_list ~= 0 then
             end_pics_data.file_list = child_file_list
             return _get_pics_list(end_pics_data)
         end
@@ -323,10 +323,8 @@ local function get_pics_list(parent_dir, file_name)
     end
 
     return _get_pics_list({
-        file_list = {
-            { parent_dir = parent_dir, file_name = file_name }
-        },
-        pics_list = {},
+        file_list = file_list,
+        pics_list = pics_list,
         read_files = {}
     })
 
@@ -1371,18 +1369,27 @@ local function parse_args_init(args_iter)
 
 end
 
-local function parse_args_build(args_iter, root_dir)
+local function parse_args_build(args_iter, root_dir, pics_directory)
 
     local arg_config = {}
     local val
     local tmp_fd
-    local nextarg
+    local next_arg
     local rel_path
     local abs_path
     local in_root_dir
 
-    local build_list = {}
-    arg_config.build_list = build_list
+    local in_pics_directory
+
+    local epic_list = {}
+    local file_list = {}
+    arg_config.file_list = file_list
+    arg_config.epic_list = epic_list
+
+    local parent_dir
+    local file_name
+    local file_basename
+    local file_source
 
     for arg in args_iter do
 
@@ -1401,23 +1408,54 @@ local function parse_args_build(args_iter, root_dir)
 
             abs_path = tmp_fd:read("a"):gsub("\n", "")
 
+            -- stripping root directory
             in_root_dir, rel_path = abs_path:match("^(" .. root_dir .. ")/?(.*)$")
 
             assert(in_root_dir,
                 "parse_args_build: " .. abs_path .. " file is outside of root directory"
             )
 
-            build_list[#build_list + 1] = rel_path
+            parent_dir, file_name = rel_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+
+            file_basename = file_name:match("(.-)%.[%w-_]+ *$")
+            assert(file_basename, "File basename is empty")
+
+            in_pics_directory = parent_dir:match(pics_directory .. "$")
+
+            if in_pics_directory then
+
+                file_source = read_file(abs_path)
+
+                if file_source
+                    :match("\\begin{tikzpicture}.-\\end{tikzpicture}") then
+                    epic_list[#epic_list + 1] = {
+                        parent_dir = parent_dir,
+                        file_basename = file_basename
+                    }
+
+                else
+                    tb_log("warn",
+                        "parse_args_build: " .. abs_path .. " file does not contains"
+                        .. " a valid tikzpicture, therefore skipping"
+                    )
+                end
+
+            else
+                file_list[#file_list + 1] = {
+                    parent_dir = parent_dir,
+                    file_name = file_name
+                }
+            end
 
         elseif val == "--output-dir" then
 
-            nextarg = arg.peek_next()
+            next_arg = arg.peek_next()
 
-            assert(nextarg,
+            assert(next_arg,
                 "parse_args_build: --output-dir takes a path to the output directory"
             )
 
-            arg_config.output_dir = nextarg
+            arg_config.output_dir = next_arg
 
             arg.skip_next()
         end
@@ -1597,32 +1635,18 @@ end
 
 local function lunatikz_build(data)
 
-    local arg_config = parse_args_build(data.args_iter, data.root_dir)
+    local arg_config = parse_args_build(
+        data.args_iter, data.root_dir, data.lconfig["pics.directory"])
     local lconfig = data.lconfig
     local in_pics_directory = data.cur_dir
         :match(lconfig["pics.directory"] .. "$")
 
-    local file_list = {}
     local file_source
     local parent_dir
     local file_name
 
-    if #arg_config.build_list ~= 0 then
-
-        for _, file_path in ipairs(arg_config.build_list) do
-
-            parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+)$")
-
-            file_list[#file_list + 1] = {
-                parent_dir = parent_dir,
-                file_name = file_name
-            }
-
-        end
-
-        -- set files
-
-    elseif not in_pics_directory then
+    if #arg_config.file_list == 0
+        and not in_pics_directory then
         file_name = data.build_entry[data.cur_dir]
         assert(file_name,
             "lunatikz_build: no arguments are given, and couldn't find an entry for\n"
@@ -1632,18 +1656,25 @@ local function lunatikz_build(data)
             parent_dir = data.cur_dir,
             file_name = file_name
         }
-    else
+    elseif in_pics_directory then
         assert(false,
             "lunatikz_build: inside `pics.directory` and no arguments"
         )
-        -- error out
     end
 
-    for _, val in ipairs(file_list) do
+    for _, val in ipairs(arg_config.file_list) do
         print(val.parent_dir .. val.file_name)
     end
 
-    -- local pics_list = get_pics_list(
+    if lconfig["pics.skipping.enabled"] then
+        print("skip")
+    else
+        print("no skip")
+    end
+
+    local pics_list = {}
+
+    -- get_pics_list(
     --     data.root_dir .. "/" .. data.cur_dir
     --     , config.file_name
     -- )
