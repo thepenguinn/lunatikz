@@ -1371,17 +1371,56 @@ local function parse_args_init(args_iter)
 
 end
 
-local function parse_args_build(args_iter)
+local function parse_args_build(args_iter, root_dir)
 
     local arg_config = {}
     local val
+    local tmp_fd
+    local nextarg
+    local rel_path
+    local abs_path
+    local in_root_dir
+
+    local build_list = {}
+    arg_config.build_list = build_list
 
     for arg in args_iter do
 
         val = arg.val
 
-        print("from build " .. val)
-        arg_config[#arg_config + 1] = val
+        if not val:match("^%-%-") then
+
+            assert(check_file(val),
+                "parse_args_build: " .. val .. "file does not exist."
+            )
+
+            tmp_fd = io.popen(
+                "readlink -e \"" .. val .. "\""
+            )
+            assert(tmp_fd)
+
+            abs_path = tmp_fd:read("a"):gsub("\n", "")
+
+            in_root_dir, rel_path = abs_path:match("^(" .. root_dir .. ")/?(.*)$")
+
+            assert(in_root_dir,
+                "parse_args_build: " .. abs_path .. " file is outside of root directory"
+            )
+
+            build_list[#build_list + 1] = rel_path
+
+        elseif val == "--output-dir" then
+
+            nextarg = arg.peek_next()
+
+            assert(nextarg,
+                "parse_args_build: --output-dir takes a path to the output directory"
+            )
+
+            arg_config.output_dir = nextarg
+
+            arg.skip_next()
+        end
     end
 
     return arg_config
@@ -1558,13 +1597,56 @@ end
 
 local function lunatikz_build(data)
 
-    local arg_config = parse_args_build(data.args_iter)
+    local arg_config = parse_args_build(data.args_iter, data.root_dir)
+    local lconfig = data.lconfig
+    local in_pics_directory = data.cur_dir
+        :match(lconfig["pics.directory"] .. "$")
 
-    if #arg_config == 0 then
-        print("NO args")
+    local file_list = {}
+    local file_source
+    local parent_dir
+    local file_name
+
+    if #arg_config.build_list ~= 0 then
+
+        for _, file_path in ipairs(arg_config.build_list) do
+
+            parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+
+            file_list[#file_list + 1] = {
+                parent_dir = parent_dir,
+                file_name = file_name
+            }
+
+        end
+
+        -- set files
+
+    elseif not in_pics_directory then
+        file_name = data.build_entry[data.cur_dir]
+        assert(file_name,
+            "lunatikz_build: no arguments are given, and couldn't find an entry for\n"
+            .. "current directory"
+        )
+        file_list[#file_list + 1] = {
+            parent_dir = data.cur_dir,
+            file_name = file_name
+        }
+    else
+        assert(false,
+            "lunatikz_build: inside `pics.directory` and no arguments"
+        )
+        -- error out
     end
 
-    -- local pics_list = get_pics_list(config.parent_dir, config.file_name)
+    for _, val in ipairs(file_list) do
+        print(val.parent_dir .. val.file_name)
+    end
+
+    -- local pics_list = get_pics_list(
+    --     data.root_dir .. "/" .. data.cur_dir
+    --     , config.file_name
+    -- )
 
 end
 
@@ -1712,6 +1794,8 @@ local function lunatikz(args)
         .. "Run `lunatikz init path/to/dir` to initialize the dir as a lunatikz directory"
     )
 
+    -- Stripping root_dir from the begin of cur_dir
+    data.cur_dir = data.cur_dir:gsub("^" .. data.root_dir, "")
 
     -- Reading local config
     data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
