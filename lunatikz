@@ -450,7 +450,16 @@ local function split_path(file_path)
 
 end
 
-local function get_gdep_list(root_dir, dirs_to_add)
+local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
+
+    assert(pics_directory and pics_directory ~= "",
+        "get_gdep_list_from_dir: pics_directory is empty"
+    )
+
+    assert(type(gdep_list) == "table",
+        "get_gdep_list_from_dir: pics_directory is empty"
+    )
+
 
     local function add_files(dir, gdep_list)
 
@@ -493,13 +502,12 @@ local function get_gdep_list(root_dir, dirs_to_add)
     end
 
     local read_dirs = {}
-    local gdep_list = {}
     local dirs_fd
 
     dirs_fd = io.popen(
         "find "
         .. root_dir
-        .. " -type d -name tikzpics"
+        .. " -type d -name \"" .. pics_directory .. "\""
     )
 
     for dir in dirs_fd:lines() do
@@ -514,23 +522,21 @@ local function get_gdep_list(root_dir, dirs_to_add)
 
     dirs_fd:close()
 
-    for _, dir_list in pairs(dirs_to_add) do
+    -- for _, dir_list in pairs(dirs_to_add) do
 
-        for _, dir in pairs(dir_list) do
+    --     for _, dir in pairs(dir_list) do
 
-            if read_dirs[dir.parent_dir] then
-                goto continue
-            end
+    --         if read_dirs[dir.parent_dir] then
+    --             goto continue
+    --         end
 
-            add_files(gdep_list, dir.parent_dir)
+    --         add_files(gdep_list, dir.parent_dir)
 
-            read_dirs[dir.parent_dir] = true
-            ::continue::
-        end
+    --         read_dirs[dir.parent_dir] = true
+    --         ::continue::
+    --     end
 
-    end
-
-    return gdep_list
+    -- end
 
 end
 
@@ -1274,7 +1280,7 @@ local function main(args)
 
     local pics_list = get_pics_list(config.parent_dir, config.file_name)
 
-    local gdep_list = get_gdep_list(config.root_dir, { pics_list })
+    local gdep_list = get_gdep_list_from_dir(config.root_dir, { pics_list })
 
     local dep_cache = build_dep_tree(
         config.root_dir, config.style, pics_list, gdep_list
@@ -1637,6 +1643,43 @@ local function lunatikz_init(data)
 
 end
 
+local function fill_gdep_list(root_dir, gdep_list)
+
+    local lmodt_fd
+    local abs_parent_dir
+    local abs_file_path
+    local lmodt
+
+    for key, file in pairs(gdep_list) do
+
+        if file.parent_dir == "" then
+            abs_parent_dir = root_dir
+        else
+            abs_parent_dir = root_dir .. "/" .. file.parent_dir
+        end
+
+        abs_file_path = abs_parent_dir .. "/" .. key .. ".tex"
+
+        lmodt_fd = io.popen(
+            "stat --printf \"%Y\" \""
+            .. abs_file_path .. "\""
+        )
+
+        assert(lmodt_fd, "fill_gdep_list: popen failed")
+
+        lmodt = lmodt_fd:read("a")
+
+        assert(lmodt ~= "", "fill_gdep_list: stat returned empty string")
+
+        lmodt = tonumber(lmodt)
+
+        gdep_list[key].parent_dir = abs_parent_dir
+        gdep_list[key].lmodt = lmodt
+
+    end
+
+end
+
 local function lunatikz_build(data)
 
     local arg_config = parse_args_build(
@@ -1666,43 +1709,48 @@ local function lunatikz_build(data)
         )
     end
 
-    for _, val in ipairs(arg_config.file_list) do
-        print(val.abs_parent_dir .. "/" ..  val.file_name)
+    -- TODO: Implement a better way
+
+    fill_gdep_list(data.root_dir, data.gdep_list)
+
+    if lconfig["pics.checking.enabled"] then
+        -- update lmodt of each of the
+    else
+        -- get_gdep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.gdep_list)
+        -- call get_gdep_list_from_dir to generated dep list
     end
 
-    if lconfig["pics.skipping.enabled"] then
-        print("skip")
-    else
-        print("no skip")
+    for k, v in pairs(data.gdep_list) do
+        print(k, v.parent_dir, v.lmodt)
     end
 
     local pics_list = {}
 
     get_pics_list(data.root_dir, arg_config.file_list, pics_list)
 
-    for _, v in pairs(arg_config.epic_list) do
-        print(v.file_basename, v.parent_dir)
-    end
+    -- for _, v in pairs(arg_config.epic_list) do
+    --     print(v.file_basename, v.parent_dir)
+    -- end
 
-    print("------------")
-    for v, k in pairs(pics_list) do
-        print(v, k.parent_dir)
-    end
+   --  print("------------")
+   --  for v, k in pairs(pics_list) do
+   --      print(v, k.parent_dir)
+   --  end
 
 end
 
 local function lunatikz_add(data)
 
     local arg_config = parse_args_add_remove(data.args_iter, data.root_dir)
-    local file_name
     local parent_dir
+    local file_basename
 
     -- Adding to gdep_list
     for _, file_path in ipairs(arg_config.gdep_list) do
 
-        parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
+        parent_dir, file_basename = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
 
-        data.gdep_list[file_name] = parent_dir
+        data.gdep_list[file_basename] = { parent_dir = parent_dir }
     end
 
     -- Adding to build_entry
