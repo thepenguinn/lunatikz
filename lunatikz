@@ -148,7 +148,7 @@ end
 -- Param: file_list a table of paths, should be relative paths from root_dir.
 -- Return: a hashmap with each file name without extention as keys to tables,
 --         and each having the parent_dir(string), and lmodt(nummer) as values
-local function get_pics_list(file_list, pics_list)
+local function get_pics_list(root_dir, file_list, pics_list)
 
     assert(type(pics_list) == "table",
         "get_pics_list: expected pics_list to be a table"
@@ -173,10 +173,10 @@ local function get_pics_list(file_list, pics_list)
 
         for _, file in pairs(end_pics_data.file_list) do
 
-            local file_path = file.parent_dir .. "/" .. file.file_name
+            local file_path = file.abs_parent_dir .. "/" .. file.file_name
 
             if end_pics_data.read_files[file_path] then
-                return
+                goto continue
             end
 
             end_pics_data.read_files[file_path] = true
@@ -224,9 +224,9 @@ local function get_pics_list(file_list, pics_list)
                 else
 
                     if parent_dir == "" then
-                        rl_parent_dir = file.parent_dir
+                        rl_parent_dir = file.abs_parent_dir
                     else
-                        rl_parent_dir = file.parent_dir .. "/" .. parent_dir
+                        rl_parent_dir = file.abs_parent_dir .. "/" .. parent_dir
                     end
 
                 end
@@ -241,7 +241,7 @@ local function get_pics_list(file_list, pics_list)
                 tmp_fd:close()
 
                 end_pics_data.pics_list[file_basename] = {
-                    parent_dir = abs_parent_dir
+                    parent_dir = abs_parent_dir:gsub("^" .. root_dir .. "/", "")
                 }
 
             end
@@ -273,12 +273,12 @@ local function get_pics_list(file_list, pics_list)
                     if is_abs_path == "/" then
                         if parent_dir == "" then
                             child_file_list[#child_file_list + 1] = {
-                                parent_dir = "/",
+                                abs_parent_dir = "/",
                                 file_name = file_name
                             }
                         else
                             child_file_list[#child_file_list + 1] = {
-                                parent_dir = "/" .. parent_dir,
+                                abs_parent_dir = "/" .. parent_dir,
                                 file_name = file_name
                             }
                         end
@@ -286,12 +286,12 @@ local function get_pics_list(file_list, pics_list)
                     else
                         if parent_dir == "" then
                             child_file_list[#child_file_list + 1] = {
-                                parent_dir = file.parent_dir,
+                                abs_parent_dir = file.abs_parent_dir,
                                 file_name = file_name
                             }
                         else
                             child_file_list[#child_file_list + 1] = {
-                                parent_dir = file.parent_dir .. "/" .. parent_dir,
+                                abs_parent_dir = file.abs_parent_dir .. "/" .. parent_dir,
                                 file_name = file_name
                             }
                         end
@@ -313,6 +313,7 @@ local function get_pics_list(file_list, pics_list)
 
             file_fd:close()
 
+            ::continue::
         end
 
         if #child_file_list ~= 0 then
@@ -1386,7 +1387,8 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
     arg_config.file_list = file_list
     arg_config.epic_list = epic_list
 
-    local parent_dir
+    local rel_parent_dir
+    local abs_parent_dir
     local file_name
     local file_basename
     local file_source
@@ -1415,12 +1417,14 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
                 "parse_args_build: " .. abs_path .. " file is outside of root directory"
             )
 
-            parent_dir, file_name = rel_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+            rel_parent_dir, file_name = rel_path:match("^(/?.-)/-([%w%.-_ ]+)$")
 
             file_basename = file_name:match("(.-)%.[%w-_]+ *$")
             assert(file_basename, "File basename is empty")
 
-            in_pics_directory = parent_dir:match(pics_directory .. "$")
+            abs_parent_dir = abs_path:match("^(/?.-)/-([%w%.-_ ]+)$")
+
+            in_pics_directory = rel_parent_dir:match(pics_directory .. "$")
 
             if in_pics_directory then
 
@@ -1429,7 +1433,7 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
                 if file_source
                     :match("\\begin{tikzpicture}.-\\end{tikzpicture}") then
                     epic_list[#epic_list + 1] = {
-                        parent_dir = parent_dir,
+                        parent_dir = rel_parent_dir,
                         file_basename = file_basename
                     }
 
@@ -1442,7 +1446,7 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
 
             else
                 file_list[#file_list + 1] = {
-                    parent_dir = parent_dir,
+                    abs_parent_dir = abs_parent_dir,
                     file_name = file_name
                 }
             end
@@ -1663,7 +1667,7 @@ local function lunatikz_build(data)
     end
 
     for _, val in ipairs(arg_config.file_list) do
-        print(val.parent_dir .. val.file_name)
+        print(val.abs_parent_dir .. "/" ..  val.file_name)
     end
 
     if lconfig["pics.skipping.enabled"] then
@@ -1674,10 +1678,16 @@ local function lunatikz_build(data)
 
     local pics_list = {}
 
-    -- get_pics_list(
-    --     data.root_dir .. "/" .. data.cur_dir
-    --     , config.file_name
-    -- )
+    get_pics_list(data.root_dir, arg_config.file_list, pics_list)
+
+    for _, v in pairs(arg_config.epic_list) do
+        print(v.file_basename, v.parent_dir)
+    end
+
+    print("------------")
+    for v, k in pairs(pics_list) do
+        print(v, k.parent_dir)
+    end
 
 end
 
