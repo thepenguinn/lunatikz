@@ -1685,7 +1685,7 @@ local function lunatikz_build(data)
         -- call get_gdep_list_from_dir to generated dep list
     end
 
-    for k, v in pairs(data.gdep_list) do
+    for k, v in pairs(data.pics_list) do
         print(k, v.parent_dir, v.lmodt)
     end
 
