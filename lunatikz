@@ -848,25 +848,24 @@ local function check_file(file_path)
 
 end
 
-local function build_pics(parent_dir, style, file_order, gdep_list)
+local function build_pics(cur_dir, lconfig, file_order, gdep_list)
 
-    assert(type(parent_dir) == "string")
-    assert(type(style) == "string")
+    assert(type(cur_dir) == "string")
+    assert(type(lconfig) == "table")
     assert(type(gdep_list) == "table")
     assert(type(file_order) == "table")
 
     os.execute(
         "mkdir \""
-        .. parent_dir .. "/".. StandaloneTmpDir .. "\" > /dev/null 2>&1"
+        .. cur_dir .. "/".. lconfig["standalone.tmpdir"] .. "\" > /dev/null 2>&1"
     )
 
     local exit_stat = os.execute(
-        "cd \"" .. parent_dir .. "\" && "
-        .. "pdflatex -halt-on-error -shell-escape -output-directory \""
-        .. StandaloneTmpDir
+        "pdflatex -halt-on-error -shell-escape -output-directory \""
+        .. lconfig["standalone.tmpdir"]
         .. "\" \""
-        .. StandaloneSub
-        .. "\""
+        .. lconfig["standalone.sub"]
+        .. ".tex\""
     )
 
     assert(exit_stat,
@@ -885,17 +884,17 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
 
             os.execute(
                 "mkdir \""
-                .. gdep_list[key].parent_dir .. "/".. style
+                .. gdep_list[key].parent_dir .. "/".. lconfig["style"]
                 .. "\" > /dev/null 2>&1"
             )
 
             bg_process[batch_idx] = io.popen(
                 "pdftk \""
-                .. parent_dir
+                .. cur_dir
                 .. "/"
-                .. StandaloneTmpDir
+                .. lconfig["standalone.tmpdir"]
                 .. "/"
-                .. StandaloneSub
+                .. lconfig["standalone.sub"]
                 .. ".pdf\" cat "
                 .. tostring(idx)
                 .. "-"
@@ -903,7 +902,7 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
                 .. " output \""
                 .. gdep_list[key].parent_dir
                 .. "/"
-                .. style
+                .. lconfig["style"]
                 .. "/"
                 .. key
                 .. ".pdf\" &"
@@ -924,17 +923,17 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
 
         os.execute(
             "mkdir \""
-            .. gdep_list[key].parent_dir .. "/".. style
+            .. gdep_list[key].parent_dir .. "/".. lconfig["style"]
             .. "\" > /dev/null 2>&1"
         )
 
         bg_process[batch_idx] = io.popen(
             "pdftk \""
-            .. parent_dir
+            .. cur_dir
             .. "/"
-            .. StandaloneTmpDir
+            .. lconfig["standalone.tmpdir"]
             .. "/"
-            .. StandaloneSub
+            .. lconfig["standalone.sub"]
             .. ".pdf\" cat "
             .. tostring(idx)
             .. "-"
@@ -942,7 +941,7 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
             .. " output \""
             .. gdep_list[key].parent_dir
             .. "/"
-            .. style
+            .. lconfig["style"]
             .. "/"
             .. key
             .. ".pdf\" &"
@@ -1365,6 +1364,8 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
             arg_config.output_dir = next_arg
 
             arg.skip_next()
+        elseif val == "--dry-run" then
+            arg_config.dry_run = true
         end
     end
 
@@ -1645,6 +1646,16 @@ local function lunatikz_build(data)
 
     file_order = gen_standalone_sub(root_dir, cur_dir, lconfig,
         pics_list, gdep_list, dep_cache)
+
+    if arg_config.dry_run then
+        return
+    end
+
+    if next(pics_list, nil) then
+        build_pics(cur_dir, lconfig, file_order, gdep_list)
+    end
+
+
 
 
 
