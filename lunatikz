@@ -207,42 +207,7 @@ local function get_pics_list(root_dir, file_list, pics_list)
                 file_basename = file_name:match("(.-)%.[%w-_]+ *$")
                 assert(file_basename, "File basename is empty")
 
-                if end_pics_data.pics_list[file_basename] then
-                    return
-                end
-
-                local rl_parent_dir
-                local abs_parent_dir
-                local tmp_fd
-
-                if is_abs_path == "/" then
-                    if parent_dir == "" then
-                        rl_parent_dir = "/"
-                    else
-                        rl_parent_dir = "/" .. parent_dir
-                    end
-                else
-
-                    if parent_dir == "" then
-                        rl_parent_dir = file.abs_parent_dir
-                    else
-                        rl_parent_dir = file.abs_parent_dir .. "/" .. parent_dir
-                    end
-
-                end
-
-                tmp_fd = io.popen(
-                    "readlink -e "
-                    .. rl_parent_dir
-                )
-
-                abs_parent_dir = tmp_fd:read("a"):gsub("\n", "")
-
-                tmp_fd:close()
-
-                end_pics_data.pics_list[file_basename] = {
-                    parent_dir = abs_parent_dir:gsub("^" .. root_dir .. "/", "")
-                }
+                end_pics_data.pics_list[file_basename] = true
 
             end
 
@@ -750,7 +715,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
         end
 
         pdf_fd = io.open(
-            pics_list[key].parent_dir
+            gdep_list[key].parent_dir
             .. "/"
             .. style
             .. "/"
@@ -779,13 +744,13 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
                 os.execute(
                     "cp \""
-                    .. dep_cache[key].parent_dir
+                    .. gdep_list[key].parent_dir
                     .. "/"
                     .. style
                     .. "/"
                     .. key
                     .. ".pdf\" \""
-                    .. dep_cache[key].parent_dir
+                    .. gdep_list[key].parent_dir
                     .. "/"
                     .. key
                     .. ".pdf\""
@@ -847,7 +812,7 @@ local function gen_standalone_sub(parent_dir, file_name,
 
             add_files(fd, dep_cache[key].parent_nodes)
             file_source = read_file(
-                dep_cache[key].parent_dir
+                gdep_list[key].parent_dir
                 .. "/"
                 .. key
                 .. ".tex"
@@ -908,7 +873,7 @@ local function gen_standalone_sub(parent_dir, file_name,
 
     for _, key in ipairs(file_order) do
         file_source = read_file(
-            dep_cache[key].parent_dir
+            gdep_list[key].parent_dir
             .. "/"
             .. key
             .. ".tex"
@@ -942,11 +907,11 @@ local function check_file(file_path)
 
 end
 
-local function build_pics(parent_dir, style, file_order, dep_cache)
+local function build_pics(parent_dir, style, file_order, gdep_list)
 
     assert(type(parent_dir) == "string")
     assert(type(style) == "string")
-    assert(type(dep_cache) == "table")
+    assert(type(gdep_list) == "table")
     assert(type(file_order) == "table")
 
     os.execute(
@@ -979,7 +944,7 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
 
             os.execute(
                 "mkdir \""
-                .. dep_cache[key].parent_dir .. "/".. style
+                .. gdep_list[key].parent_dir .. "/".. style
                 .. "\" > /dev/null 2>&1"
             )
 
@@ -995,7 +960,7 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
                 .. "-"
                 .. tostring(idx)
                 .. " output \""
-                .. dep_cache[key].parent_dir
+                .. gdep_list[key[key].parent_dir
                 .. "/"
                 .. style
                 .. "/"
@@ -1018,7 +983,7 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
 
         os.execute(
             "mkdir \""
-            .. dep_cache[key].parent_dir .. "/".. style
+            .. gdep_list[key].parent_dir .. "/".. style
             .. "\" > /dev/null 2>&1"
         )
 
@@ -1034,7 +999,7 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
             .. "-"
             .. tostring(idx)
             .. " output \""
-            .. dep_cache[key].parent_dir
+            .. gdep_listkey].parent_dir
             .. "/"
             .. style
             .. "/"
@@ -1050,18 +1015,18 @@ local function build_pics(parent_dir, style, file_order, dep_cache)
 
 end
 
-local function link_build_files(style, file_order, dep_cache)
+local function link_build_files(style, file_order, gdep_list)
 
     for _, key in ipairs(file_order) do
         os.execute(
             "cp \""
-            .. dep_cache[key].parent_dir
+            .. gdep_list[key].parent_dir
             .. "/"
             .. style
             .. "/"
             .. key
             .. ".pdf\" \""
-            .. dep_cache[key].parent_dir
+            .. gdep_list[key].parent_dir
             .. "/"
             .. key
             .. ".pdf\""
