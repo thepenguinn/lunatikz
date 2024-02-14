@@ -1456,7 +1456,6 @@ local function parse_args_config(args_iter)
         -- elseif val == "watch.list" then
         end
 
-        print("from config " .. val)
     end
 
     return arg_config
@@ -1700,6 +1699,7 @@ local function lunatikz_build(data)
 
 
 
+
     -- only write dep_cache if something is changeed, ie, we need to build something
     -- if next(pics_list, nil) then
     --     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
@@ -1795,8 +1795,7 @@ local function lunatikz_config(data)
             for _, arg in ipairs(data.args) do
                 data.gconfig[arg] = nil
             end
-        else
-            print("booo")
+            print("Not yet implemented")
         end
     else
         if arg_config.clear then
@@ -1842,7 +1841,6 @@ local function lunatikz(args)
 
     if fstarg == "init" then
         lunatikz_init(data)
-        print("We are going to init")
         return
     end
 
@@ -1874,7 +1872,6 @@ local function lunatikz(args)
 
     if fstarg == "config" then
         lunatikz_config(data)
-        print("We are going to config")
         return
     end
 
@@ -1886,13 +1883,10 @@ local function lunatikz(args)
 
     if fstarg == "add" then
         lunatikz_add(data)
-        print("We are going to add")
     elseif fstarg == "remove" then
         lunatikz_remove(data)
-        print("We are going to remove")
     elseif fstarg == "build" then
         lunatikz_build(data)
-        print("We are going to build")
     else
         tb_log("warn",
             "lunatikz: " .. fstarg .. " is an unknown subcommand"
@@ -1904,8 +1898,5 @@ local function lunatikz(args)
 end
 
 return lunatikz(arg)
-
--- print("Root Dir is ", root_dir(path))
-
 
 -- return main(arg)
