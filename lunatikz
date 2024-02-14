@@ -748,7 +748,7 @@ local function gen_standalone_main(root_dir, main_file, standalone_main)
 
 end
 
-local function gen_standalone_sub(parent_dir, file_name,
+local function gen_standalone_sub(root_dir, cur_dir, lconfig,
     pics_list, gdep_list, dep_cache)
 
     local function add_files(fd, pics_list)
@@ -778,37 +778,28 @@ local function gen_standalone_sub(parent_dir, file_name,
     end
 
     local fd
-    local doc_source
-    local doc_class
 
     local file_order = {}
     local file_source
 
-    doc_source = read_file(
-        parent_dir
-        .. "/"
-        .. file_name
-    )
-
-    assert(doc_source,
-        "gen_standalone_sub: failed to open source file"
-    )
-
-    doc_class = doc_source:gsub(
-        ".*(\\documentclass[ \n\t]*%[.-/?)[%w%.-_]-%][ \n\t]*{.-}"
-        .. "(.-)\\begin[ \n\t]*{document}.*",
-        "%1" .. StandaloneMain .. "]{subfiles}\n%2\n"
-    )
-
     fd = io.open(
-        parent_dir
+        cur_dir
         .. "/"
-        .. StandaloneSub
+        .. lconfig["standalone.sub"]
         .. ".tex",
         "w"
     )
 
-    fd:write(doc_class)
+    assert(fd,
+        "gen_standalone_sub: failed to open file"
+    )
+
+
+    fd:write(
+        "\\documentclass ["
+        .. root_dir .. "/" .. lconfig["standalone.main"]
+        .. "] {subfiles}\n\n"
+    )
 
     for key in pairs(pics_list) do
 
@@ -1590,13 +1581,23 @@ local function lunatikz_build(data)
 
     local arg_config = parse_args_build(
         data.args_iter, data.root_dir, data.lconfig["pics.directory"])
-    local lconfig = data.lconfig
-    local in_pics_directory = data.cur_dir
-        :match(lconfig["pics.directory"] .. "$")
 
     local file_source
     local parent_dir
     local file_name
+
+    local gdep_list = data.gdep_list
+    local cur_dir = data.cur_dir
+    local lconfig = data.lconfig
+    local root_dir = data.root_dir
+
+    local pics_list = {}
+    local dep_cache
+    local main_file
+    local file_order
+
+    local in_pics_directory = data.cur_dir
+        :match(lconfig["pics.directory"] .. "$")
 
     if #arg_config.file_list == 0
         and #arg_config.pics_list == 0
@@ -1616,7 +1617,7 @@ local function lunatikz_build(data)
         )
     end
 
-    fill_gdep_list(data.root_dir, data.gdep_list)
+    fill_gdep_list(root_dir, gdep_list)
 
     if lconfig["pics.checking.enabled"] then
         -- update lmodt of each of the
@@ -1625,9 +1626,7 @@ local function lunatikz_build(data)
         -- call get_gdep_list_from_dir to generated dep list
     end
 
-    local pics_list = {}
-
-    get_pics_list(data.root_dir, arg_config.file_list, pics_list)
+    get_pics_list(root_dir, arg_config.file_list, pics_list)
 
     -- Adding user asked pics to the pics_list
     for _, key in pairs(arg_config.pics_list) do
@@ -1635,16 +1634,21 @@ local function lunatikz_build(data)
     end
 
     -- building dep_cache
-    local dep_cache = build_dep_tree(
-        data.root_dir, lconfig.style, pics_list, data.gdep_list)
+    dep_cache = build_dep_tree(root_dir, lconfig.style, pics_list, gdep_list)
 
     if #arg_config.file_list ~= 0 then
-        data.main_file = get_main_file(data.root_dir,
+        main_file = get_main_file(root_dir,
             arg_config.file_list[1].abs_parent_dir .. "/" .. arg_config.file_list[1].file_name)
     end
 
+    gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
 
-    gen_standalone_main(data.root_dir, data.main_file, lconfig["standalone.main"])
+    file_order = gen_standalone_sub(root_dir, cur_dir, lconfig,
+        pics_list, gdep_list, dep_cache)
+
+
+
+
 
     -- only write dep_cache if something is changeed, ie, we need to build something
     -- if next(pics_list, nil) then
@@ -1796,9 +1800,6 @@ local function lunatikz(args)
         "Current directory is not a lunatikz directory,\n"
         .. "Run `lunatikz init path/to/dir` to initialize the dir as a lunatikz directory"
     )
-
-    -- Stripping root_dir from the begin of cur_dir
-    data.cur_dir = data.cur_dir:gsub("^" .. data.root_dir, "")
 
     -- Reading local config
     data.lconfig = read_config(data.root_dir .. "/.lunatikz/config")
