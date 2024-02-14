@@ -41,12 +41,12 @@ end
 -- Return: a table
 local function read_dep_cache(root_dir)
 
-    local dep_file = io.open(root_dir .. "/tikzpics/dep_cache.lua", "r")
+    local dep_file = io.open(root_dir .. "/.lunatikz/dep_cache", "r")
     local dep_cache = nil
 
     if dep_file then
         dep_file:close()
-        local dep = dofile(root_dir .. "/tikzpics/dep_cache.lua")
+        local dep = dofile(root_dir .. "/.lunatikz/dep_cache")
         if dep then
             dep_cache = dep
         end
@@ -86,7 +86,9 @@ local function read_dep_cache(root_dir)
 
 end
 
-local function write_dep_cache(path, dep_cache)
+
+--  absolute path
+local function write_config(path, config)
 
     local function writetable(fd, tbl, depth)
 
@@ -122,11 +124,6 @@ local function write_dep_cache(path, dep_cache)
         end
     end
 
-    -- os.execute(
-    --     "mkdir \""
-    --     .. root_dir .. "/tikzpics\" > /dev/null 2>&1"
-    -- )
-
     local file_fd = io.open(
         path,
         "w"
@@ -135,12 +132,12 @@ local function write_dep_cache(path, dep_cache)
     assert(file_fd,
         "Couldn't open "
         .. path
-        .. " to write dep_cache"
+        .. " to write config"
     )
 
 
     file_fd:write("return {\n")
-    writetable(file_fd, dep_cache, 0)
+    writetable(file_fd, config, 0)
     file_fd:write("}\n")
 
 end
@@ -1320,12 +1317,6 @@ local function read_config(file_path)
 
 end
 
-local function write_config(path, config)
-    -- TODO: implement this properly
-    write_dep_cache(path, config)
-
-end
-
 local function parse_args_init(args_iter)
 
     local stat
@@ -1353,10 +1344,10 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
 
     local in_pics_directory
 
-    local epic_list = {}
+    local pics_list = {}
     local file_list = {}
     arg_config.file_list = file_list
-    arg_config.epic_list = epic_list
+    arg_config.pics_list = pics_list
 
     local rel_parent_dir
     local abs_parent_dir
@@ -1403,10 +1394,7 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
 
                 if file_source
                     :match("\\begin{tikzpicture}.-\\end{tikzpicture}") then
-                    epic_list[#epic_list + 1] = {
-                        parent_dir = rel_parent_dir,
-                        file_basename = file_basename
-                    }
+                    pics_list[#pics_list + 1] = file_basename
 
                 else
                     tb_log("warn",
@@ -1685,22 +1673,23 @@ local function lunatikz_build(data)
         -- call get_gdep_list_from_dir to generated dep list
     end
 
-    for k, v in pairs(data.gdep_list) do
-        print(k, v.parent_dir, v.lmodt)
-    end
-
     local pics_list = {}
 
     get_pics_list(data.root_dir, arg_config.file_list, pics_list)
 
-    -- for _, v in pairs(arg_config.epic_list) do
-    --     print(v.file_basename, v.parent_dir)
-    -- end
+    -- Adding user asked pics to the pics_list
+    for _, key in pairs(arg_config.pics_list) do
+        pics_list[key] = true
+    end
 
-   --  print("------------")
-   --  for v, k in pairs(pics_list) do
-   --      print(v, k.parent_dir)
-   --  end
+    -- building dep_cache
+    local dep_cache = build_dep_tree(
+        data.root_dir, lconfig.style, pics_list, data.gdep_list)
+
+    -- only write dep_cache if something is changeed, ie, we need to build something
+    if next(pics_list, nil) then
+        write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
+    end
 
 end
 
