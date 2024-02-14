@@ -293,97 +293,50 @@ local function get_pics_list(root_dir, file_list, pics_list)
 
 end
 
--- Param: file_path, relative path of file from current
---        working directory
--- Return: root_dir(string), root_file(string)
-local function get_root_dir_from_file(file_path)
+-- Param: file_path, absolute file path
+-- Param: root_dir, project root directory (absolute)
+-- Return: main_file(string) relative to root_dir
+local function get_main_file(root_dir, file_path)
 
     assert(type(file_path) == "string",
-        "get_root_dir_from_file: Expected file_path to be string type"
+        "get_main_file: Expected file_path to be string type"
     )
 
-    local parent_dir
-    local file_name
-    local is_dir
-
-    parent_dir, file_name, is_dir =
-    file_path:match("^(/?.-)/-([%w%.-_ ]+)(/?)$")
-    assert(not (is_dir == "/"), "File name ends with a /")
-
-    local file_fd = io.open(file_path, "r")
-    assert(file_fd, "Failed to open: " .. file_path)
-
-    local file_source = file_fd:read("a")
-    file_fd:close()
+    local file_source
 
     local oparg
     local fstarg
+
+    local oafile_name
+
+    file_source = read_file(file_path)
+
+    assert(file_source, "get_main_file: Failed to open, " .. file_path)
 
     oparg, fstarg = file_source:match(
         "\\documentclass[ \n\t]*%[(.-)%][ \n\t]*{(.-)}"
     )
 
-    local oais_abs_path
-    local oaparent_dir
-    local oafile_name
-    local oais_dir
-
-    local rl_parent_dir
-    local root_file_name
-
     if fstarg == "subfiles" then
-        oais_abs_path, oaparent_dir, oafile_name, oais_dir =
-        oparg:match("^(/?)(.-)/-([%w%.-_ ]+)(/?)$")
-        assert(not (oais_dir == "/"), "File name ends with a /")
+
+        oafile_name = oparg:match("^/?.-/-([%w%.-_ ]+)$")
 
         -- checking of extention
         if not oafile_name:match(".-%.([%w-_]+) *$") then
+            -- if not adding one
             oafile_name = oafile_name .. ".tex"
         end
 
-        if parent_dir == "" then
-            if oaparent_dir == "" then
-                rl_parent_dir = ".", oafile_name
-            else
-                rl_parent_dir = oais_abs_path .. oaparent_dir
-            end
-        else
-            if oaparent_dir == "" then
-                rl_parent_dir = parent_dir
-            else
-                if oais_abs_path == "" then
-                    rl_parent_dir = parent_dir .. "/" .. oaparent_dir
-                else
-                    rl_parent_dir = "/" .. oaparent_dir
-                end
-            end
-        end
-
-        root_file_name = oafile_name
-
+        -- lets assume the oafile_name is the main.file name
+        -- \documentclass [../../main.tex] {subfiles}
+        --                       ^      ^
+        --                       |      |
+        --                       +------+---- oafile_name
+        return oafile_name
     else
-        if parent_dir == "" then
-            rl_parent_dir = "."
-        else
-            rl_parent_dir = parent_dir
-        end
-        root_file_name = file_name
+        -- first argument is not subfiles then the file must be the main file
+        return file_path:gsub("^" ..  root_dir, "")
     end
-
-    local tmp_fd
-    local abs_parent_dir
-
-    tmp_fd = io.popen(
-        "readlink -e "
-        .. rl_parent_dir
-    )
-
-    abs_parent_dir = tmp_fd :read("a")
-        :gsub("\n", "")
-
-    tmp_fd:close()
-
-    return abs_parent_dir, root_file_name
 
 end
 
@@ -765,15 +718,15 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
 end
 
-local function gen_standalone_main(root_dir, root_file)
+local function gen_standalone_main(root_dir, main_file, standalone_main)
 
-    local root_file_source = read_file(
+    local main_file_source = read_file(
         root_dir
         .. "/"
-        .. root_file
+        .. main_file
     )
 
-    local standalone_source = root_file_source:gsub(
+    local standalone_source = main_file_source:gsub(
         ".*\\documentclass[ \n\t]*%[[^%]]-%][ \n\t]*{[^}]-}(.-\\begin{document}).*",
         "\\documentclass[tikz]{standalone}%1\n\\end{document}\n"
     )
@@ -781,7 +734,7 @@ local function gen_standalone_main(root_dir, root_file)
     local fd = io.open(
         root_dir
         .. "/"
-        .. StandaloneMain
+        .. standalone_main
         .. ".tex",
         "w"
     )
@@ -1646,6 +1599,7 @@ local function lunatikz_build(data)
     local file_name
 
     if #arg_config.file_list == 0
+        and #arg_config.pics_list == 0
         and not in_pics_directory then
         file_name = data.build_entry[data.cur_dir]
         assert(file_name,
@@ -1661,8 +1615,6 @@ local function lunatikz_build(data)
             "lunatikz_build: inside `pics.directory` and no arguments"
         )
     end
-
-    -- TODO: Implement a better way
 
     fill_gdep_list(data.root_dir, data.gdep_list)
 
@@ -1686,10 +1638,18 @@ local function lunatikz_build(data)
     local dep_cache = build_dep_tree(
         data.root_dir, lconfig.style, pics_list, data.gdep_list)
 
-    -- only write dep_cache if something is changeed, ie, we need to build something
-    if next(pics_list, nil) then
-        write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
+    if #arg_config.file_list ~= 0 then
+        data.main_file = get_main_file(data.root_dir,
+            arg_config.file_list[1].abs_parent_dir .. "/" .. arg_config.file_list[1].file_name)
     end
+
+
+    gen_standalone_main(data.root_dir, data.main_file, lconfig["standalone.main"])
+
+    -- only write dep_cache if something is changeed, ie, we need to build something
+    -- if next(pics_list, nil) then
+    --     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
+    -- end
 
 end
 
@@ -1847,6 +1807,9 @@ local function lunatikz(args)
     setmetatable(data.lconfig, {
         __index = {
             ["pics.directory"] = "tikzpics",
+            ["standalone.sub"] = "_standalone_sub",
+            ["standalone.main"] = "_standalone_main",
+            ["standalone.tmpdir"] = "_standalone_tmp",
             ["pics.checking.enabled"] = true,
             ["margin"] = "0pt",
             ["style"] = "default",
