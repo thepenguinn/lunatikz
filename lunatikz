@@ -975,27 +975,28 @@ local function link_build_files(style, file_order, gdep_list)
     end
 end
 
-local function clean_standalone_files(root_dir, parent_dir)
+local function clean_standalone_files(lconfig, root_dir, cur_dir)
 
     assert(type(root_dir) == "string")
-    assert(type(parent_dir) == "string")
+    assert(type(cur_dir) == "string")
+    assert(type(lconfig) == "table")
 
     assert(root_dir ~= "")
-    assert(parent_dir ~= "")
+    assert(cur_dir ~= "")
 
     os.execute(
         "rm -r \""
         .. root_dir
         .. "/"
-        .. StandaloneMain
+        .. lconfig["standalone.main"]
         .. ".tex\" \""
-        .. parent_dir
+        .. cur_dir
         .. "/"
-        .. StandaloneSub
+        .. lconfig["standalone.sub"]
         .. ".tex\" \""
-        .. parent_dir
+        .. cur_dir
         .. "/"
-        .. StandaloneTmpDir
+        .. lconfig["standalone.tmpdir"]
         .. "\""
     )
 
@@ -1652,8 +1653,46 @@ local function lunatikz_build(data)
     end
 
     if next(pics_list, nil) then
+
         build_pics(cur_dir, lconfig, file_order, gdep_list)
+
+        link_build_files(lconfig["style"], file_order, gdep_list)
+
+        write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
+
+        clean_standalone_files(lconfig, root_dir, cur_dir)
+
+        if lconfig["touch.enabled"] then
+
+            local dirs_touched = {}
+            local parent_dir
+
+            -- TODO: Maybe find a better way
+            for key in pairs(pics_list) do
+
+                parent_dir = gdep_list[key].parent_dir
+
+                if dirs_touched[parent_dir] then
+                    goto continue
+                end
+
+                os.execute(
+                    "touch \""
+                    .. parent_dir
+                    .. "/"
+                    .. lconfig["touch.file"]
+                    .. "\""
+                )
+
+                dirs_touched[parent_dir] = true
+
+                ::continue::
+            end
+        end
+
     end
+
+
 
 
 
