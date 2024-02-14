@@ -960,7 +960,7 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
                 .. "-"
                 .. tostring(idx)
                 .. " output \""
-                .. gdep_list[key[key].parent_dir
+                .. gdep_list[key].parent_dir
                 .. "/"
                 .. style
                 .. "/"
@@ -999,7 +999,7 @@ local function build_pics(parent_dir, style, file_order, gdep_list)
             .. "-"
             .. tostring(idx)
             .. " output \""
-            .. gdep_listkey].parent_dir
+            .. gdep_list[key].parent_dir
             .. "/"
             .. style
             .. "/"
