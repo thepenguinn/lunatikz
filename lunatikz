@@ -1048,7 +1048,7 @@ local function gen_disc_standalone_sub(root_dir, lconfig, epic_list, gdep_list)
 
 end
 
-local function build_disc_pics(lconfig, epic_list)
+local function build_disc_pics(lconfig, epic_list, output_dir)
 
     local exit_stat
 
@@ -1056,6 +1056,22 @@ local function build_disc_pics(lconfig, epic_list)
         "mkdir \""
         .. lconfig["standalone.tmpdir"] .. "\" > /dev/null 2>&1"
     )
+
+    if output_dir then
+
+        exit_stat = os.execute(
+            "mkdir \""
+            .. output_dir .. "\" -p > /dev/null 2>&1"
+        )
+
+        assert(exit_stat,
+            "build_disc_pics: couldn't create " .. output_dir
+        )
+
+        output_dir = output_dir .. "/"
+    else
+        output_dir = ""
+    end
 
     exit_stat = os.execute(
         "pdflatex -halt-on-error -shell-escape -output-directory \""
@@ -1081,6 +1097,8 @@ local function build_disc_pics(lconfig, epic_list)
             .. "-"
             .. tostring(idx)
             .. " output \""
+            -- the "/" will be appended to the actual output_dir, aobe
+            .. output_dir
             .. pic.file_basename
             .. "-"
             .. lconfig["style"]
@@ -1812,7 +1830,8 @@ local function lunatikz_build(data)
 
         gen_disc_standalone_sub(root_dir, lconfig, arg_config.pics_list, gdep_list)
 
-        build_disc_pics(lconfig, arg_config.pics_list)
+        build_disc_pics(lconfig, arg_config.pics_list, arg_config.output_dir)
+
     end
 
     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
