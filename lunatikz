@@ -1097,7 +1097,7 @@ local function build_disc_pics(lconfig, epic_list, output_dir)
             .. "-"
             .. tostring(idx)
             .. " output \""
-            -- the "/" will be appended to the actual output_dir, aobe
+            -- the "/" will be appended to the actual output_dir, above
             .. output_dir
             .. pic.file_basename
             .. "-"
@@ -1542,10 +1542,10 @@ local function parse_args_config(args_iter)
                     "parse_args_config: style takes an argument"
                 )
             end
-        elseif val == "style.file.path" then
+        elseif val == "style.file" then
             nextarg = arg.peek_next()
             if nextarg then
-                arg_config["style.file.path"] = nextarg:gsub("[\n]", "")
+                arg_config["style.file"] = nextarg:gsub("[\n]", "")
             elseif not arg_config.clear then
                 tb_log( "warn",
                     "parse_args_config: style.file.path takes an argument"
@@ -1560,8 +1560,8 @@ local function parse_args_config(args_iter)
                     "parse_args_config: style.macro takes an argument"
                 )
             end
-        elseif val == "style.file.fromroot" then
-            arg_config["style.file.fromroot"] = true
+        elseif val == "style.fromroot" then
+            arg_config["style.fromroot"] = true
         elseif val == "touch.enable" then
             arg_config["touch.enabled"] = true
         elseif val == "touch.disable" then
@@ -1700,6 +1700,49 @@ local function fill_gdep_list(root_dir, gdep_list)
 
 end
 
+local function set_style(root_dir, lconfig)
+
+    if lconfig["style"] ~= "default" then
+        return
+    end
+
+    if not (lconfig["style.file"] or lconfig["style.macro"]) then
+        return
+    elseif (lconfig["style.file"] and not lconfig["style.macro"])
+        or (not lconfig["style.file"] and lconfig["style.macro"]) then
+
+        tb_log("warn",
+            "set_style: Both style.file and style.macro needs to be set inorder\n"
+            .. "to set the style from a file.\n"
+            .. "To set run    `lunatikz config style.file path/to/file`\n"
+            .. "              `lunatikz config style.macro macro without \\`\n"
+        )
+
+        return
+    end
+
+    local style_source = read_file(
+        root_dir .. "/" .. lconfig["style.file"]
+    )
+
+    assert(style_source,
+        "set_style: couldn't open style.file"
+    )
+
+
+    local style = style_source:match(
+        "\\" .. lconfig["style.macro"] .. "[ \n\t]*{(.-)}"
+    )
+
+    assert(style,
+        "set_style: couldn't find style.macro in style.file"
+    )
+
+    -- trimming any newlines or backslashes
+    lconfig["style"] = style:gsub("[\n\\]", "")
+
+end
+
 local function lunatikz_build(data)
 
     local arg_config = parse_args_build(
@@ -1740,6 +1783,8 @@ local function lunatikz_build(data)
             "lunatikz_build: inside `pics.directory` and no arguments"
         )
     end
+
+    set_style(root_dir, lconfig)
 
     fill_gdep_list(root_dir, gdep_list)
 
@@ -2000,9 +2045,9 @@ local function lunatikz(args)
             ["pics.checking.enabled"] = true,
             ["margin"] = "0pt",
             ["style"] = "default",
-            ["style.file.path"] = nil,
+            ["style.file"] = nil,
             ["style.macro"] = nil,
-            ["style.file.fromroot"] = false,
+            ["style.fromroot"] = false,
             ["touch.enabled"] = false,
             ["touch.file"] = "need_to_build",
         }
