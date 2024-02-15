@@ -1002,6 +1002,95 @@ local function clean_standalone_files(lconfig, root_dir, cur_dir)
 
 end
 
+local function gen_disc_standalone_sub(root_dir, lconfig, epic_list, gdep_list)
+
+    local fd
+
+    fd = io.open(
+        lconfig["standalone.sub"]
+        .. ".tex",
+        "w"
+    )
+
+    assert(fd, "gen_disc_standalone_sub: could'nt open file for standalone sub")
+
+    fd:write(
+        "\\documentclass ["
+        .. root_dir .. "/" .. lconfig["standalone.main"]
+        .. "] {subfiles}\n\n"
+        .. "\\begin{document}\n\n"
+    )
+
+    for _, pic in ipairs(epic_list) do
+
+        fd:write(
+            "\\standaloneconfig{margin = {"
+            .. pic.margin
+            .. "}}\n"
+            .. "\\begin{tikzpicture}\n"
+            .. "\\node [inner sep = 0pt] {"
+            .. "\\includegraphics{"
+            .. gdep_list[pic.file_basename].parent_dir
+            .. "/"
+            .. lconfig["style"]
+            .. "/"
+            .. pic.file_basename
+            .. ".pdf}};\n"
+            .. "\\end{tikzpicture}\n\n"
+        )
+    end
+
+    fd:write(
+        "\\end{document}\n"
+    )
+
+    fd:close()
+
+end
+
+local function build_disc_pics(lconfig, epic_list)
+
+    local exit_stat
+
+    os.execute(
+        "mkdir \""
+        .. lconfig["standalone.tmpdir"] .. "\" > /dev/null 2>&1"
+    )
+
+    exit_stat = os.execute(
+        "pdflatex -halt-on-error -shell-escape -output-directory \""
+        .. lconfig["standalone.tmpdir"]
+        .. "\" \""
+        .. lconfig["standalone.sub"]
+        .. ".tex\""
+    )
+
+    assert(exit_stat,
+        "build_disc_pics: pdflatex failed miserably."
+    )
+
+    for idx, pic in ipairs(epic_list) do
+
+        os.execute(
+            "pdftk \""
+            .. lconfig["standalone.tmpdir"]
+            .. "/"
+            .. lconfig["standalone.sub"]
+            .. ".pdf\" cat "
+            .. tostring(idx)
+            .. "-"
+            .. tostring(idx)
+            .. " output \""
+            .. pic.file_basename
+            .. "-"
+            .. lconfig["style"]
+            .. ".pdf\""
+        )
+
+    end
+
+end
+
 local function loop_tbl(tbl)
 
     local itm = {
@@ -1211,7 +1300,7 @@ local function main(args)
 
     write_dep_cache(config.root_dir, dep_cache)
 
-    clean_standalone_files(config.root_dir, config.parent_dir)
+    -- clean_standalone_files(config.root_dir, config.parent_dir)
 
     if TouchFile then
         os.execute(
@@ -1299,6 +1388,8 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
     local file_basename
     local file_source
 
+    local margin = "0pt"
+
     for arg in args_iter do
 
         val = arg.val
@@ -1338,7 +1429,10 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
 
                 if file_source
                     :match("\\begin{tikzpicture}.-\\end{tikzpicture}") then
-                    pics_list[#pics_list + 1] = file_basename
+                    pics_list[#pics_list + 1] = {
+                        file_basename = file_basename,
+                        margin = margin
+                    }
 
                 else
                     tb_log("warn",
@@ -1367,6 +1461,16 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
             arg.skip_next()
         elseif val == "--dry-run" then
             arg_config.dry_run = true
+        elseif val == "--margin" then
+            next_arg = arg.peek_next()
+
+            assert(next_arg,
+                "parse_args_build: --margin takes an argument"
+            )
+
+            margin = next_arg
+
+            arg.skip_next()
         end
     end
 
@@ -1591,6 +1695,7 @@ local function lunatikz_build(data)
     local cur_dir = data.cur_dir
     local lconfig = data.lconfig
     local root_dir = data.root_dir
+    local build_entry = data.build_entry
 
     local pics_list = {}
     local dep_cache
@@ -1603,13 +1708,13 @@ local function lunatikz_build(data)
     if #arg_config.file_list == 0
         and #arg_config.pics_list == 0
         and not in_pics_directory then
-        file_name = data.build_entry[data.cur_dir]
+        file_name = build_entry[cur_dir]
         assert(file_name,
             "lunatikz_build: no arguments are given, and couldn't find an entry for\n"
             .. "current directory"
         )
         file_list[#file_list + 1] = {
-            parent_dir = data.cur_dir,
+            parent_dir = cur_dir,
             file_name = file_name
         }
     elseif in_pics_directory then
@@ -1630,36 +1735,43 @@ local function lunatikz_build(data)
     get_pics_list(root_dir, arg_config.file_list, pics_list)
 
     -- Adding user asked pics to the pics_list
-    for _, key in pairs(arg_config.pics_list) do
-        pics_list[key] = true
+    for _, pic in pairs(arg_config.pics_list) do
+        pics_list[pic.file_basename] = true
     end
 
     -- building dep_cache
     dep_cache = build_dep_tree(root_dir, lconfig.style, pics_list, gdep_list)
 
-    if #arg_config.file_list ~= 0 then
-        main_file = get_main_file(root_dir,
-            arg_config.file_list[1].abs_parent_dir .. "/" .. arg_config.file_list[1].file_name)
-    end
-
-    gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
-
-    file_order = gen_standalone_sub(root_dir, cur_dir, lconfig,
-        pics_list, gdep_list, dep_cache)
-
-    if arg_config.dry_run then
-        return
+    if #arg_config.file_list == 0
+        and #arg_config.pics_list > 0 then
+        if not build_entry[""] then
+            tb_log("warn",
+                "Inorder to build tikzpictures as discrete pdf files, you need to tell\n"
+                .. "lunatikz, which file is the main file of this project. In order to do\n"
+                .. "that run:    `lunatikz add --build-entry path/to/main/file`\n"
+                .. "NOTE: This main file should be the one that is in the root directory of\n"
+                .. "the project and contains the actual `documentclass`.\n"
+            )
+        end
     end
 
     if next(pics_list, nil) then
 
+        main_file = build_entry[""] or get_main_file(root_dir,
+            arg_config.file_list[1].abs_parent_dir .. "/" .. arg_config.file_list[1].file_name)
+
+        gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
+
+        file_order = gen_standalone_sub(root_dir, cur_dir, lconfig,
+            pics_list, gdep_list, dep_cache)
+
+        if arg_config.dry_run then
+            return
+        end
+
         build_pics(cur_dir, lconfig, file_order, gdep_list)
 
         link_build_files(lconfig["style"], file_order, gdep_list)
-
-        write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
-
-        clean_standalone_files(lconfig, root_dir, cur_dir)
 
         if lconfig["touch.enabled"] then
 
@@ -1691,14 +1803,21 @@ local function lunatikz_build(data)
 
     end
 
+    if #arg_config.pics_list > 0 then
 
+        if not main_file then
+            main_file = build_entry[""]
+            gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
+        end
 
+        gen_disc_standalone_sub(root_dir, lconfig, arg_config.pics_list, gdep_list)
 
+        build_disc_pics(lconfig, arg_config.pics_list)
+    end
 
+    write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
 
-
-
-
+    -- clean_standalone_files(lconfig, root_dir, cur_dir)
 
     -- only write dep_cache if something is changeed, ie, we need to build something
     -- if next(pics_list, nil) then
