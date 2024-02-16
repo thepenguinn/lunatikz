@@ -552,7 +552,6 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             dep_cache[key].lmodt = gdep_list[key].lmodt
         else
             dep_cache[key] = {
-                parent_dir = gdep_list[key].parent_dir,
                 lmodt = gdep_list[key].lmodt
             }
         end
@@ -565,7 +564,6 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
                     .. parent
                 )
                 dep_cache[parent] = {
-                    parent_dir = gdep_list[parent].parent_dir,
                     lmodt = nil
                 }
             end
