@@ -4,7 +4,7 @@ description: specification for lunatikz
 authors: Daniel
 categories: spec
 cpreated: 2024-02-05T17:13:44+0530
-updated: 2024-02-10T20:17:36+0530
+updated: 2024-02-16T06:01:37+0530
 version: 1.1.1
 @end
 
@@ -39,70 +39,80 @@ version: 1.1.1
 * config subcommand
 
   lunatikz `config` will help the user to set configuration on a per project
-  basis, or a global wide basis. The global `config` will be read everytime the
-  user invokes lunatikz then lunatikz will read per project `config` and merges
-  it with global `config`. The per project `config` can override the global
-  `config`.
+  basis, or a global wide basis (NOTE: global config is not yet implemented).
+  The global `config` will be read everytime the user invokes lunatikz then
+  lunatikz will read per project `config` and merges it with global `config`.
+  The per project `config` can override the global `config`. (NOTE: since
+  global config is not implemented yet, no merging will happens)
 
 ** configurable parameters
 
-*** pics-directory (default tikzpics)
+*** pics.directory (default: tikzpics)
 
     The directory where pics are stored.
 
-*** skip-pics-checking (default false)
+*** pics.skip (default: false)
 
-    If true, skips reading all the files exists in `pics-directory` instead
-    reads the pics list from `dep_list`, and the user can add a file to this
-    list by using `lunatikz add path-to-file`.
+    If true, skips reading all the files exists in `pics.directory` instead
+    reads the pics list from `.lunatikz/gdep_list`, and the user can add a file
+    to this list by using `lunatikz add path/to/file`.
 
-*** margin (default 0pt)
+*** margin (default: 0pt)
 
-    This is the margin that is passed to the `\\documentclass[tikz, margin=0pt]{standalone}`
+    This is the margin that is passed to the
+    `\\documentclass[tikz, margin=0pt]{standalone}`
 
-*** style (default default)
+*** style (default: default)
 
-    `style` determines the style of the current build. Setting `style` will overrides
-    `style-file` and `style-macro`.
+    `style` determines the style of the current build. Setting `style` will
+    overrides `style.file` and `style.macro`.
 
-*** style-file (default nil)
+*** style.file (default: nil)
 
     Lets say, user wants to build the pic with a different colorscheme. Each
     different scheme can be seen as a different `style`. Usually, the user will
     set some macro to a different colorscheme in some file. Therefore user can
-    set this `style-file` to that file, and lunatikz will check for that macro
-    (see `style-macro` for setting which macro to check) in that file. And uses
+    set this `style.file` to that file, and lunatikz will check for that macro
+    (see `style.macro` for setting which macro to check) in that file. And uses
     that style.
 
-*** style-macro (default nil)
+*** style.macro (default: nil)
 
-    If `style-macro` is set lunatikz will look for first instance of this macro
+    If `style.macro` is set lunatikz will look for first instance of this macro
     and reads its first argument as the `style`.
 
-    Note: Both `style-file` and `style-macro` should be setted in order for
+    Note: Both `style.file` and `style.macro` should be setted in order for
     this to work.
 
-*** style-root-path (default false)
+*** style.fromroot (default: false)
 
-    If the `style-path` is relative, ie does not start with a `/`, by default
+    (NOTE: not implemented yet, currently the `style.file` is always from the
+    root directory)
+
+    If the `style.file` is relative, ie does not start with a `/`, by default
     lunatikz will assume that file to be relative to the current directory from
-    which lunatikz was invoked. If `style-root-path` is true, then that path
+    which lunatikz was invoked. If `style.fromroot` is true, then that path
     will be assumed to be relative to the root directory of the project.
 
-*** touch-file (default nil)
+*** touch.file (default: need_to_build)
 
     If any of the files are changed or any of the pics that are needed by the
-    project file needed to be build lunatikz will touch this `touch-file`.
-    Note: This file will be relative to
-    `[parent-dir-of-the-file]/[pics-directory]`, if its a relative file, ie,
-    does not starts with a `/`.
+    project file needed to be build lunatikz will touch this `touch.file`.
+    Note: This file will be in the directory of the build pic.
 
-*** watch-list (default nil)
+*** touch (default: nil)
+
+    Even though `touch.file` is set, lunatikz won't touch the file, `touch` is
+    needed to be set to true.
+
+*** watch.list (default: nil)
+
+    (NOTE: not implemented yet)
 
     TODO: Needs revision
 
     `watch-list` will be a list of files, if modified lunatikz will compile all
-    of the pics needed for the file.
+    of the pics needed for the entire project.
 
 * build subcommand
 
@@ -110,18 +120,27 @@ version: 1.1.1
   optional. If no files are given, lunatikz will look for `build-entry` for the
   current directory in the local config, if lunatikz finds it, and the file
   exists, lunatikz will build pics for that. If the current directory is inside
-  a `pics-directory` then lunatikz will check for `\\begin{tikzpics}` and
-  `\\end{tikzpics}` block, in that file. If it finds it, lunatikz will build
-  that pic. If the current working directory is inside a `pics-directory` then
-  `file` is mandatory. Otherwise lunatikz will politely refuse. `--force` will
-  overrides this behaviour, therefore lunatikz will blindly builds the pic. If
-  it fails, lunatikz will call `pdflatex` /miserable/ and exits.
+  a `pics.directory` then `file` is mandatory.
+
+  If the file is in `pics.directory`, then lunatikz will check for
+  `\\begin{tikzpics}` and `\\end{tikzpics}` block, in that file. If it finds
+  it, lunatikz will build that pic. Otherwise lunatikz will politely refuse.
+  `--force` will overrides this behaviour, therefore lunatikz will blindly
+  builds the pic. If it fails, lunatikz will call `pdflatex` /miserable/ and
+  exits.
+
+  (NOTE: `--force` is not yet implemented)
 
 * add subcommand
 
-  `add` will add entries to different lists. List of lists.
+  `add` will add entries to different lists.
 
-*** dep-list
+  List of lists:
+
+  - dep_list
+  - build_entry
+
+*** dep_list
 
     `dep-list` will be the list of dependency files. Basically they are the
     files in the `pics.directory`. User can add files to this list and disable
@@ -136,9 +155,9 @@ version: 1.1.1
     `files`. It can be relative or absolute paths. But internally lunatikz will
     store them as the relative paths from the root directory of the project.
 
-*** build-entry
+*** build_entry
 
-    `build-entry` will be the list of files that are used when `lunatikz build`
+    `build_entry` will be the list of files that are used when `lunatikz build`
     is invoked without any files as arguments. lunatikz will check for the
     current directory in this list, and if it finds an entry lunatikz will
     build that file. Only one file can be specified for one directory.
