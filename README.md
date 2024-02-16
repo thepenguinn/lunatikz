@@ -1,13 +1,3 @@
----
-title: SPEC
-description: specification for lunatikz
-authors: Daniel
-categories: spec
-cpreated: 2024-02-05T17:13:44+0530
-updated: 2024-02-16T06:01:37+0530
-version: 1.1.1
----
-
 # LunaTikZ - A tikz picture builder
 
 
