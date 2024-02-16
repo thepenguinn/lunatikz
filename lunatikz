@@ -365,18 +365,18 @@ local function split_path(file_path)
 
 end
 
-local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
+local function get_gdep_list_from_dir(root_dir, pics_directory, dep_list)
 
     assert(pics_directory and pics_directory ~= "",
         "get_gdep_list_from_dir: pics_directory is empty"
     )
 
-    assert(type(gdep_list) == "table",
+    assert(type(dep_list) == "table",
         "get_gdep_list_from_dir: pics_directory is empty"
     )
 
 
-    local function add_files(dir, gdep_list)
+    local function add_files(dir, dep_list)
 
         local files_fd
         local lmodt_fd
@@ -406,7 +406,7 @@ local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
 
             lmodt_fd:close()
 
-            gdep_list[file_basename] = {
+            dep_list[file_basename] = {
                 parent_dir = parent_dir,
                 lmodt = lmodt
             }
@@ -429,7 +429,7 @@ local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
         if read_dirs[dir] then
             goto continue
         end
-        add_files(dir, gdep_list)
+        add_files(dir, dep_list)
 
         read_dirs[dir] = true
         ::continue::
@@ -445,7 +445,7 @@ local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
     --             goto continue
     --         end
 
-    --         add_files(gdep_list, dir.parent_dir)
+    --         add_files(dep_list, dir.parent_dir)
 
     --         read_dirs[dir.parent_dir] = true
     --         ::continue::
@@ -455,15 +455,15 @@ local function get_gdep_list_from_dir(root_dir, pics_directory, gdep_list)
 
 end
 
-local function build_dep_for_file(key, style, gdep_list, dep_cache)
+local function build_dep_for_file(key, style, dep_list, dep_cache)
 
     assert(type(key) == "string")
     assert(type(style) == "string")
-    assert(type(gdep_list) == "table")
+    assert(type(dep_list) == "table")
     assert(type(dep_cache) == "table")
 
     assert(
-        not gdep_list[key].been_here,
+        not dep_list[key].been_here,
         "cyclic referencing in dependency tree of "
         .. key
     )
@@ -473,13 +473,13 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
     local need_to_build = false
     local new_parent_nodes = {}
 
-    if gdep_list[key].dep_added then
-        if gdep_list[key].from_child
+    if dep_list[key].dep_added then
+        if dep_list[key].from_child
             and dep_cache[key][style .. "_build_child_nodes"]
             and dep_cache[key][style .. "_build_child_nodes"][
-            gdep_list[key].from_child
+            dep_list[key].from_child
             ] then
-            return gdep_list[key].need_to_build
+            return dep_list[key].need_to_build
         end
     end
 
@@ -500,20 +500,20 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
     if not dep_cache[key]
         or not dep_cache[key].lmodt
-        or dep_cache[key].lmodt < gdep_list[key].lmodt then
+        or dep_cache[key].lmodt < dep_list[key].lmodt then
 
         if not dep_cache[key] then
             tb_log("log", "no dep_cache: " .. key)
         elseif not dep_cache[key].lmodt then
             tb_log("log", "no lmodt: " .. key)
-        elseif dep_cache[key].lmodt < gdep_list[key].lmodt then
+        elseif dep_cache[key].lmodt < dep_list[key].lmodt then
             tb_log("log", "file modified: " .. key)
         end
 
         need_to_build = true
 
         file_source = read_file(
-            gdep_list[key].parent_dir
+            dep_list[key].parent_dir
             .. "/"
             .. key
             .. ".tex"
@@ -523,17 +523,17 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             "\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}"
         ) do
 
-            if gdep_list[macro] then
+            if dep_list[macro] then
 
-                gdep_list[key].been_here = true
+                dep_list[key].been_here = true
 
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
-                gdep_list[macro].from_child = key
-                build_dep_for_file(macro, style, gdep_list, dep_cache)
-                gdep_list[macro].from_child = nil
+                dep_list[macro].from_child = key
+                build_dep_for_file(macro, style, dep_list, dep_cache)
+                dep_list[macro].from_child = nil
 
-                gdep_list[key].been_here = nil
+                dep_list[key].been_here = nil
 
             else
                 tb_log("log",
@@ -549,17 +549,17 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
             for parent in pairs(dep_cache[key].parent_nodes) do
                 dep_cache[parent].child_nodes[key] = nil
             end
-            dep_cache[key].lmodt = gdep_list[key].lmodt
+            dep_cache[key].lmodt = dep_list[key].lmodt
         else
             dep_cache[key] = {
-                lmodt = gdep_list[key].lmodt
+                lmodt = dep_list[key].lmodt
             }
         end
 
         for _, parent in pairs(new_parent_nodes) do
             if not dep_cache[parent] then
                 -- this assert will never get triggered
-                assert(gdep_list[parent],
+                assert(dep_list[parent],
                     "build_dep_for_file: couldn't find "
                     .. parent
                 )
@@ -574,42 +574,42 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
         erase_build_child_nodes(dep_cache[key][style .. "_build_child_nodes"])
         dep_cache[key][style .. "_build_child_nodes"] = nil
 
-        if gdep_list[key].from_child then
+        if dep_list[key].from_child then
             dep_cache[key][style .. "_build_child_nodes"] = {}
             dep_cache[key][style .. "_build_child_nodes"][
-            gdep_list[key].from_child
+            dep_list[key].from_child
             ] = true
         end
 
-        gdep_list[key].dep_added = true
-        gdep_list[key].need_to_build = need_to_build
+        dep_list[key].dep_added = true
+        dep_list[key].need_to_build = need_to_build
 
     else
 
         local parent_need_to_build = false
         local child_need_to_build = false
 
-        if gdep_list[key].from_child
+        if dep_list[key].from_child
             and dep_cache[key][style .. "_build_child_nodes"]
             and not dep_cache[key][style .. "_build_child_nodes"][
-            gdep_list[key].from_child
+            dep_list[key].from_child
             ] then
 
             child_need_to_build = true
 
             dep_cache[key][style .. "_build_child_nodes"][
-            gdep_list[key].from_child
+            dep_list[key].from_child
             ] = true
 
         end
 
-        if not gdep_list[key].dep_added then
+        if not dep_list[key].dep_added then
             for parent in pairs(dep_cache[key].parent_nodes) do
-                gdep_list[parent].from_child = key
+                dep_list[parent].from_child = key
                 parent_need_to_build = build_dep_for_file(
-                    parent, style, gdep_list, dep_cache
+                    parent, style, dep_list, dep_cache
                 )
-                gdep_list[parent].from_child = nil
+                dep_list[parent].from_child = nil
 
                 if parent_need_to_build then
                     dep_cache[parent][style .. "_build_child_nodes"] =
@@ -622,8 +622,8 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 
             end
             if need_to_build then
-                gdep_list[key].dep_added = true
-                gdep_list[key].need_to_build = need_to_build
+                dep_list[key].dep_added = true
+                dep_list[key].need_to_build = need_to_build
             end
 
         end
@@ -637,12 +637,12 @@ local function build_dep_for_file(key, style, gdep_list, dep_cache)
 end
 
 ---@Param: pics_list
-local function build_dep_tree(root_dir, style, pics_list, gdep_list)
+local function build_dep_tree(root_dir, style, pics_list, dep_list)
 
     assert(type(root_dir) == "string")
     assert(type(style) == "string")
     assert(type(pics_list) == "table")
-    assert(type(gdep_list) == "table")
+    assert(type(dep_list) == "table")
 
     local dep_cache = read_dep_cache(root_dir)
 
@@ -651,7 +651,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
     for key, file in pairs(pics_list) do
 
-        if not gdep_list[key] then
+        if not dep_list[key] then
             pics_list[key] = nil
             tb_log(
                 "warn",
@@ -663,7 +663,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
         end
 
         pdf_fd = io.open(
-            gdep_list[key].parent_dir
+            dep_list[key].parent_dir
             .. "/"
             .. style
             .. "/"
@@ -678,7 +678,7 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
             need_to_build = true
         end
 
-        if build_dep_for_file(key, style, gdep_list, dep_cache) then
+        if build_dep_for_file(key, style, dep_list, dep_cache) then
             need_to_build = true
             tb_log("log", "Need to build: " .. key)
         end
@@ -692,13 +692,13 @@ local function build_dep_tree(root_dir, style, pics_list, gdep_list)
 
                 os.execute(
                     "cp \""
-                    .. gdep_list[key].parent_dir
+                    .. dep_list[key].parent_dir
                     .. "/"
                     .. style
                     .. "/"
                     .. key
                     .. ".pdf\" \""
-                    .. gdep_list[key].parent_dir
+                    .. dep_list[key].parent_dir
                     .. "/"
                     .. key
                     .. ".pdf\""
@@ -747,20 +747,20 @@ local function gen_standalone_main(root_dir, main_file, standalone_main)
 end
 
 local function gen_standalone_sub(root_dir, cur_dir, lconfig,
-    pics_list, gdep_list, dep_cache)
+    pics_list, dep_list, dep_cache)
 
     local function add_files(fd, pics_list)
 
         local file_source
 
         for key in pairs(pics_list) do
-            if gdep_list[key].file_added then
+            if dep_list[key].file_added then
                 goto continue
             end
 
             add_files(fd, dep_cache[key].parent_nodes)
             file_source = read_file(
-                gdep_list[key].parent_dir
+                dep_list[key].parent_dir
                 .. "/"
                 .. key
                 .. ".tex"
@@ -769,7 +769,7 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
             fd:write(file_source)
             fd:write("\n\n")
 
-            gdep_list[key].file_added = true
+            dep_list[key].file_added = true
 
             ::continue::
         end
@@ -804,7 +804,7 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
         add_files(fd, dep_cache[key].parent_nodes)
 
         file_order[#file_order + 1] = key
-        gdep_list[key].file_added = true
+        dep_list[key].file_added = true
 
     end
 
@@ -812,7 +812,7 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
 
     for _, key in ipairs(file_order) do
         file_source = read_file(
-            gdep_list[key].parent_dir
+            dep_list[key].parent_dir
             .. "/"
             .. key
             .. ".tex"
@@ -846,11 +846,11 @@ local function check_file(file_path)
 
 end
 
-local function build_pics(cur_dir, lconfig, file_order, gdep_list)
+local function build_pics(cur_dir, lconfig, file_order, dep_list)
 
     assert(type(cur_dir) == "string")
     assert(type(lconfig) == "table")
-    assert(type(gdep_list) == "table")
+    assert(type(dep_list) == "table")
     assert(type(file_order) == "table")
 
     os.execute(
@@ -882,7 +882,7 @@ local function build_pics(cur_dir, lconfig, file_order, gdep_list)
 
             os.execute(
                 "mkdir \""
-                .. gdep_list[key].parent_dir .. "/".. lconfig["style"]
+                .. dep_list[key].parent_dir .. "/".. lconfig["style"]
                 .. "\" > /dev/null 2>&1"
             )
 
@@ -898,7 +898,7 @@ local function build_pics(cur_dir, lconfig, file_order, gdep_list)
                 .. "-"
                 .. tostring(idx)
                 .. " output \""
-                .. gdep_list[key].parent_dir
+                .. dep_list[key].parent_dir
                 .. "/"
                 .. lconfig["style"]
                 .. "/"
@@ -921,7 +921,7 @@ local function build_pics(cur_dir, lconfig, file_order, gdep_list)
 
         os.execute(
             "mkdir \""
-            .. gdep_list[key].parent_dir .. "/".. lconfig["style"]
+            .. dep_list[key].parent_dir .. "/".. lconfig["style"]
             .. "\" > /dev/null 2>&1"
         )
 
@@ -937,7 +937,7 @@ local function build_pics(cur_dir, lconfig, file_order, gdep_list)
             .. "-"
             .. tostring(idx)
             .. " output \""
-            .. gdep_list[key].parent_dir
+            .. dep_list[key].parent_dir
             .. "/"
             .. lconfig["style"]
             .. "/"
@@ -953,18 +953,18 @@ local function build_pics(cur_dir, lconfig, file_order, gdep_list)
 
 end
 
-local function link_build_files(style, file_order, gdep_list)
+local function link_build_files(style, file_order, dep_list)
 
     for _, key in ipairs(file_order) do
         os.execute(
             "cp \""
-            .. gdep_list[key].parent_dir
+            .. dep_list[key].parent_dir
             .. "/"
             .. style
             .. "/"
             .. key
             .. ".pdf\" \""
-            .. gdep_list[key].parent_dir
+            .. dep_list[key].parent_dir
             .. "/"
             .. key
             .. ".pdf\""
@@ -1000,7 +1000,7 @@ local function clean_standalone_files(lconfig, root_dir, cur_dir)
 
 end
 
-local function gen_disc_standalone_sub(root_dir, lconfig, epic_list, gdep_list)
+local function gen_disc_standalone_sub(root_dir, lconfig, epic_list, dep_list)
 
     local fd
 
@@ -1028,7 +1028,7 @@ local function gen_disc_standalone_sub(root_dir, lconfig, epic_list, gdep_list)
             .. "\\begin{tikzpicture}\n"
             .. "\\node [inner sep = 0pt] {"
             .. "\\includegraphics{"
-            .. gdep_list[pic.file_basename].parent_dir
+            .. dep_list[pic.file_basename].parent_dir
             .. "/"
             .. lconfig["style"]
             .. "/"
@@ -1452,12 +1452,12 @@ local function parse_args_add_remove(args_iter, root_dir)
 
     local val
     local arg_config = {}
-    local cur_list = "gdep_list"
+    local cur_list = "dep_list"
     local stat
     local abs_path
     local tmp_fd
 
-    arg_config["gdep_list"] = {}
+    arg_config["dep_list"] = {}
     arg_config["build_entry"] = {}
 
     for arg in args_iter do
@@ -1484,7 +1484,7 @@ local function parse_args_add_remove(args_iter, root_dir)
             [#arg_config[cur_list] + 1] = abs_path:gsub("^" .. root_dir .. "/", "")
 
         elseif val == "--gdep-list" then
-            cur_list = "gdep_list"
+            cur_list = "dep_list"
         elseif val == "--build-entry" then
             cur_list = "build_entry"
         else
@@ -1527,14 +1527,14 @@ local function lunatikz_init(data)
 
 end
 
-local function fill_gdep_list(root_dir, gdep_list)
+local function fill_gdep_list(root_dir, dep_list)
 
     local lmodt_fd
     local abs_parent_dir
     local abs_file_path
     local lmodt
 
-    for key, file in pairs(gdep_list) do
+    for key, file in pairs(dep_list) do
 
         if file.parent_dir == "" then
             abs_parent_dir = root_dir
@@ -1557,8 +1557,8 @@ local function fill_gdep_list(root_dir, gdep_list)
 
         lmodt = tonumber(lmodt)
 
-        gdep_list[key].parent_dir = abs_parent_dir
-        gdep_list[key].lmodt = lmodt
+        dep_list[key].parent_dir = abs_parent_dir
+        dep_list[key].lmodt = lmodt
 
     end
 
@@ -1616,7 +1616,7 @@ local function lunatikz_build(data)
     local parent_dir
     local file_name
 
-    local gdep_list = data.gdep_list
+    local dep_list = data.dep_list
     local cur_dir = data.cur_dir
     local lconfig = data.lconfig
     local root_dir = data.root_dir
@@ -1642,7 +1642,8 @@ local function lunatikz_build(data)
             abs_parent_dir = cur_dir,
             file_name = file_name
         }
-    elseif in_pics_directory then
+    elseif in_pics_directory
+        and #arg_config.pics_list == 0 then
         assert(false,
             "lunatikz_build: inside `pics.directory` and no arguments"
         )
@@ -1650,12 +1651,12 @@ local function lunatikz_build(data)
 
     set_style(root_dir, lconfig)
 
-    fill_gdep_list(root_dir, gdep_list)
+    fill_gdep_list(root_dir, dep_list)
 
     if lconfig["pics.checking.enabled"] then
         -- update lmodt of each of the
     else
-        -- get_gdep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.gdep_list)
+        -- get_gdep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.dep_list)
         -- call get_gdep_list_from_dir to generated dep list
     end
 
@@ -1667,7 +1668,7 @@ local function lunatikz_build(data)
     end
 
     -- building dep_cache
-    dep_cache = build_dep_tree(root_dir, lconfig.style, pics_list, gdep_list)
+    dep_cache = build_dep_tree(root_dir, lconfig.style, pics_list, dep_list)
 
     if #arg_config.file_list == 0
         and #arg_config.pics_list > 0 then
@@ -1690,15 +1691,15 @@ local function lunatikz_build(data)
         gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
 
         file_order = gen_standalone_sub(root_dir, cur_dir, lconfig,
-            pics_list, gdep_list, dep_cache)
+            pics_list, dep_list, dep_cache)
 
         if arg_config.dry_run then
             return
         end
 
-        build_pics(cur_dir, lconfig, file_order, gdep_list)
+        build_pics(cur_dir, lconfig, file_order, dep_list)
 
-        link_build_files(lconfig["style"], file_order, gdep_list)
+        link_build_files(lconfig["style"], file_order, dep_list)
 
         if lconfig["touch"] then
 
@@ -1708,7 +1709,7 @@ local function lunatikz_build(data)
             -- TODO: Maybe find a better way
             for key in pairs(pics_list) do
 
-                parent_dir = gdep_list[key].parent_dir
+                parent_dir = dep_list[key].parent_dir
 
                 if dirs_touched[parent_dir] then
                     goto continue
@@ -1737,7 +1738,7 @@ local function lunatikz_build(data)
             gen_standalone_main(root_dir, main_file, lconfig["standalone.main"])
         end
 
-        gen_disc_standalone_sub(root_dir, lconfig, arg_config.pics_list, gdep_list)
+        gen_disc_standalone_sub(root_dir, lconfig, arg_config.pics_list, dep_list)
 
         build_disc_pics(lconfig, arg_config.pics_list, arg_config.output_dir)
 
@@ -1760,12 +1761,12 @@ local function lunatikz_add(data)
     local parent_dir
     local file_basename
 
-    -- Adding to gdep_list
-    for _, file_path in ipairs(arg_config.gdep_list) do
+    -- Adding to dep_list
+    for _, file_path in ipairs(arg_config.dep_list) do
 
         parent_dir, file_basename = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
 
-        data.gdep_list[file_basename] = { parent_dir = parent_dir }
+        data.dep_list[file_basename] = { parent_dir = parent_dir }
     end
 
     -- Adding to build_entry
@@ -1776,8 +1777,8 @@ local function lunatikz_add(data)
         data.build_entry[parent_dir] = file_name
     end
 
-    if #arg_config.gdep_list > 0 then
-        write_config(data.root_dir .. "/.lunatikz/gdep_list", data.gdep_list)
+    if #arg_config.dep_list > 0 then
+        write_config(data.root_dir .. "/.lunatikz/dep_list", data.dep_list)
     end
 
     if #arg_config.build_entry > 0 then
@@ -1792,12 +1793,12 @@ local function lunatikz_remove(data)
     local file_name
     local parent_dir
 
-    -- Removing to gdep_list
-    for _, file_path in ipairs(arg_config.gdep_list) do
+    -- Removing to dep_list
+    for _, file_path in ipairs(arg_config.dep_list) do
 
         parent_dir, file_name = file_path:match("^(/?.-)/-([%w%.-_ ]+).tex$")
 
-        data.gdep_list[file_name] = nil
+        data.dep_list[file_name] = nil
     end
 
     -- Removing to build_entry
@@ -1808,8 +1809,8 @@ local function lunatikz_remove(data)
         data.build_entry[parent_dir] = nil
     end
 
-    if #arg_config.gdep_list > 0 then
-        write_config(data.root_dir .. "/.lunatikz/gdep_list", data.gdep_list)
+    if #arg_config.dep_list > 0 then
+        write_config(data.root_dir .. "/.lunatikz/dep_list", data.dep_list)
     end
 
     if #arg_config.build_entry > 0 then
@@ -1925,7 +1926,7 @@ local function lunatikz(args)
     end
 
     -- Reading dependency list
-    data.gdep_list = read_config(data.root_dir .. "/.lunatikz/gdep_list")
+    data.dep_list = read_config(data.root_dir .. "/.lunatikz/dep_list")
 
     -- Reading build entries
     data.build_entry = read_config(data.root_dir .. "/.lunatikz/build_entry")
