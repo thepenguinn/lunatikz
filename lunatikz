@@ -1636,13 +1636,12 @@ local function lunatikz_build(data)
         and #arg_config.pics_list == 0
         and not in_pics_directory then
         file_name = build_entry[cur_dir:gsub("^" .. root_dir .. "/?", "")]
-        print(file_name)
         assert(file_name,
             "lunatikz_build: no arguments are given, and couldn't find an entry for"
             .. " current directory"
         )
-        file_list[#file_list + 1] = {
-            parent_dir = cur_dir,
+        arg_config.file_list[1] = {
+            abs_parent_dir = cur_dir,
             file_name = file_name
         }
     elseif in_pics_directory then
