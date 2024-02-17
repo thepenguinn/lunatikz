@@ -1,12 +1,13 @@
 # LunaTikZ - A TikZ picture builder
 
 
-LunaTikZ is a tikzpicture builder written in LUA. It reads the input file
-and its included files, takes every arguments to `\includegraphics` macro
-and tries to build that pdf file from the corresponding tex file in the
-corresponding `tikzpics` directory. In order to use `lunatikz`, the project
-needs to be structured specifically. And the project should use `subfiles`
-and `circuitikz` package.
+LunaTikZ is a tikzpicture builder written in LUA. LunaTikZ can resolve
+dependancies between different tikzpictures. And only builds the modified pics
+for a given file. LunaTikZ will read the given `.tex` file and its included
+files, and takes every argument to `\includegraphics` macro and tries to build
+that pdf file from the corresponding tex file located in the `tikzpics`
+directories. In order to use `lunatikz`, the project needs to be structured
+specifically. And the project should use `subfiles` and `circuitikz` package.
 
 # Dependent LaTeX Packages
 
@@ -84,10 +85,12 @@ will activate the `subcircuit`
 
 # LunaTikZ Project Directory Structure
 
+## LunaTikZ Directory
+
 At the root of every lunatikz project directory, there will be a `.lunatikz/`
 directory. This is where lunatikz will store project related information,
-config, and caches. These are the filea lunatikz stores in the `.lunatikz/`
-directory:
+config, and caches. Here is a table of files that lunatikz stores in the
+`.lunatikz/` directory:
 
 <table>
 
@@ -124,6 +127,34 @@ List of local dependencies, ie, the name and the relative path from root directo
 </tr>
 
 </table>
+
+## Pics Directory
+
+Pics Directory is where all the `tikzpictures` are stored. Any directory inside a
+LunaTikZ project directory can have such a pics directory. For an example:
+
+```
+.
++-- .lunatikz
+|   +-- build_entry
+|   +-- config
+|   +-- dep_cache
+|   `-- dep_list
++-- Makefile
++-- circles
+|   +-- Makefile
+|   +-- chapter.tex
+|   `-- tikzpics  <-------------------+--- pics directory
+|       +-- need_to_build             |    |
+|       +-- onecircle.tex             |    |
+|       +-- subfigonecircle.tex       |    |
+|       +-- subfigtwocircles.tex      |    |
+|       `-- twocircles.tex  <---------+    |
++-- colorscheme.sty                        |
++-- main.tex                               |
+`-- tikzpics  <----------------------------+
+```
+
 
 # Usage
 
