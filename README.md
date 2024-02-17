@@ -1,4 +1,4 @@
-# LunaTikZ - A tikz picture builder
+# LunaTikZ - A TikZ picture builder
 
 
 LunaTikZ is a tikzpicture builder written in LUA. It reads the input file
@@ -6,10 +6,83 @@ and its included files, takes every arguments to `\includegraphics` macro
 and tries to build that pdf file from the corresponding tex file in the
 corresponding `tikzpics` directory. In order to use `lunatikz`, the project
 needs to be structured specifically. And the project should use `subfiles`
-package.
+and `circuitikz` package.
+
+# Dependent LaTeX Packages
+
+## Subfiles
+
+`subfiles` will take care of including main files preamble portion to the
+sub files while building tikzpicture and helps to determine the which one
+is the main file.
+
+## Circuitikz
+
+Currently `circuitikz` has a neat feature called `subcircuits` (Beware: its an
+experimental one). In `circuitikz`'s terms, `subcircuits` are chunks of tikz
+code that can have custom anchors and can be used in other `circuits`. But it
+has some disadvantages. It needs to be written in a way that it is valid inside
+a `\draw ;` block (because it is implemented in a way that it is finally drawn
+with a single `\draw ;` command, but it's possible to reimplement this in a way
+that allows multiple `\draw ;` blocks to be included inside the `subcircuit`
+definitions, more on this later).
+
+The above mentioned disadvantage also means that we can't use anything that are
+parsed by LaTeX or any other packages other than TikZ itself. This means no
+`if elses` and `newcommands` with optional arguments (it's possible to use
+`newcommands` with no optional arguments though). (Atleast I couldn't figure
+out a way to do the above mentioned things with `subcircuits`)
+
+### Defining a Subcircuit
+
+```latex
+                    +-------------+--------- subcircuit command name
+                    v             v
+\ctikzsubcircuitdef{subfigonecircle} {
+    center, anothercoord% <----------------- comma seperated anchors
+} {
+    coordinate (#1-center) <------------+
+    circle [radius = 1]                 |
+    ++(1,0)                             |
+    %% NO EMPTY LINES ALLOWED           |
+    coordinate (#1-anothercoord) <------+--- subcircuit definition
+}
+
+```
+
+### Activating a Subcircuit
+
+After the above definition, `circuitikz` needs to calculate the positions of
+the custom anchors. For that, we to activate the `subcircuit`. The following
+will activate the `subcircuit`
+
+```latex
+\ctikzsubcircuitactivate{subfigonecircle}
+```
+
+### Using a Subcircuit
+
+```latex
+\begin{tikzpicture}
+
+    \draw             +-------+------------------- name of subcircuit
+                      |       |
+                      |       |   +----------+---- anchor to use
+    (1,0)             v       v   v          v
+    \subfigonecircle {fstcircle} {anothercoord}
+
+    (fstcircle-center) <-------------------------- using fstcircle's anothercoord
+    \subfigonecircle {seccircle} {anothercoord}    as next coordinate
+    ^                                         ^
+    +-----------------------------------------+--- drawing another circle named
+                                                   seccircle with its anothercoord
+    ;                                              at the center of fstcircle
+
+\end{tikzpicture}
+```
 
 
-# LunaTikZ project directory structure
+# LunaTikZ Project Directory Structure
 
 At the root of every lunatikz project directory, there will be a `.lunatikz/`
 directory. This is where lunatikz will store project related information,
@@ -53,6 +126,8 @@ List of local dependencies, ie, the name and the relative path from root directo
 </table>
 
 # Usage
+
+
 
 ## init subcommand
 
