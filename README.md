@@ -88,7 +88,8 @@ To get started using LunaTikZ, you need to become familiar with the **LunaTikZ
 Workflow**. By using LunaTikZ you are basically seperating all of the TikZ pics
 from you document. In that way your document and your figures are completetly
 seperate from each other. The only link to the pics will be an `\includegraphics`
-macro. And LunaTikZ will take care of the rest.
+macro. And LunaTikZ will responsible for building that pic from this link.
+
 
 ```
 +---------------+              +---------------+
@@ -102,8 +103,43 @@ macro. And LunaTikZ will take care of the rest.
 |               |              |               |
 |               |              |               |
 +---------------+              +---------------+
+```
+
+## Structure
 
 ```
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+' LaTeX Doc                                                    +---- includegraphics          '
+'                                                              |                              '
+' +--------------------+         +-------------------------+   v   +------------------------+ '
+' |      main.tex      | ------> |   circles/chapter.tex   | ----> | tikzpics/onecircle.pdf | '
+' +--------------------+         +-------------------------+       +------------------------+ '
+'                                  |                                 ^                        '
++ - - - - - - - - - - - - - - -    |                          - - - -H- - - - - - - - - - - - +
+                               '   |                         '       H
+                               '   | <---- includegraphics   '       H
+                               '   |                         '       H
++ - - - - - - - - - - - -+     '   |                         '       H
+' TikZ Pics              '     '   |                         '       H
+'                        '     '   v                         '       H
+' +--------------------+ '     ' +-------------------------+ '       H      LunaTikZ
+' |   onecircle.tex    | '     ' | tikzpics/twocircles.pdf | <============================H
+' +--------------------+ '     ' +-------------------------+ '       H                    H
+'   |    End Pic     H   '     '                             '       H                    H
+'   |                H   '     +- - - - - - - - - - - - - - -+       H                    H
+'   |                H   '                LunaTikZ                   H                    H
+'   |                H===============================================H                    H
+'   |                    '                                                                H
+'   |                     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - H - +
+'   v                                                                                     H   '
+' +--------------------+         +-------------------------+       +------------------------+ '
+' | subfigoncircle.tex | <------ |  subfigtwocircles.tex   | <---- |     twocircles.tex     | '
+' +--------------------+         +-------------------------+       +------------------------+ '
+'       Sub Pic                           Sub Pic                           End Pic           '
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+
+```
+
 
 ## LunaTikZ Directory
 
