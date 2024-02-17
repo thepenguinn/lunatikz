@@ -36,8 +36,8 @@ out a way to do the above mentioned things with `subcircuits`)
 ### Defining a Subcircuit
 
 ```latex
-%                    +-------------+--------- subcircuit command name
-%                    v             v
+%                   +-------------+---------- subcircuit command name
+%                   v             v
 \ctikzsubcircuitdef{subfigonecircle} {
     center, anothercoord%% <----------------- comma seperated anchors
 } {
