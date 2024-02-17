@@ -91,17 +91,17 @@ seperate from each other. The only link to the pics will be an `\includegraphics
 macro. And LunaTikZ will take care of the rest.
 
 ```
-┌───────────────┐              ┌───────────────┐
-│               │              │               │
-│               │              │               │
-│               │              │               │
-│               │   LunaTikZ   │               │
-│ Your Document │ <==========> │ Your TikZpics │
-│               │              │               │
-│               │              │               │
-│               │              │               │
-│               │              │               │
-└───────────────┘              └───────────────┘
++---------------+              +---------------+
+|               |              |               |
+|               |              |               |
+|               |              |               |
+|               |   LunaTikZ   |               |
+| Your Document | <==========> | Your TikZpics |
+|               |              |               |
+|               |              |               |
+|               |              |               |
+|               |              |               |
++---------------+              +---------------+
 
 ```
 
