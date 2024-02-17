@@ -382,6 +382,8 @@ needed to be set to true.
 </td>
 </tr>
 
+</table>
+
 #### watch.list (default: nil)
 
 
