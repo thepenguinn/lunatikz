@@ -1,0 +1,44 @@
+return {
+    ["onecircle"] = {
+        ["parent_dir"] = "circles/tikzpics",
+    },
+    ["twosquares"] = {
+        ["parent_dir"] = "squares/tikzpics",
+    },
+    ["onetriangle"] = {
+        ["parent_dir"] = "triangles/tikzpics",
+    },
+    ["subfigallthree"] = {
+        ["parent_dir"] = "allthree/tikzpics",
+    },
+    ["subfigonesquare"] = {
+        ["parent_dir"] = "squares/tikzpics",
+    },
+    ["twocircles"] = {
+        ["parent_dir"] = "circles/tikzpics",
+    },
+    ["onesquare"] = {
+        ["parent_dir"] = "squares/tikzpics",
+    },
+    ["subfigonetriangle"] = {
+        ["parent_dir"] = "triangles/tikzpics",
+    },
+    ["subfigtwotriangles"] = {
+        ["parent_dir"] = "triangles/tikzpics",
+    },
+    ["twotriangles"] = {
+        ["parent_dir"] = "triangles/tikzpics",
+    },
+    ["subfigtwocircles"] = {
+        ["parent_dir"] = "circles/tikzpics",
+    },
+    ["subfigonecircle"] = {
+        ["parent_dir"] = "circles/tikzpics",
+    },
+    ["subfigtwosquares"] = {
+        ["parent_dir"] = "squares/tikzpics",
+    },
+    ["allthree"] = {
+        ["parent_dir"] = "allthree/tikzpics",
+    },
+}

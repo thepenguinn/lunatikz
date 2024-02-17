@@ -1,0 +1,5 @@
+return {
+    ["style.file"] = "colorscheme.sty",
+    ["touch"] = true,
+    ["style.macro"] = "usepackage",
+}

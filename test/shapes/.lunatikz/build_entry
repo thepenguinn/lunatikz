@@ -1,0 +1,7 @@
+return {
+    [""] = "main.tex",
+    ["circles"] = "chapter.tex",
+    ["triangles"] = "chapter.tex",
+    ["allthree"] = "chapter.tex",
+    ["squares"] = "chapter.tex",
+}
