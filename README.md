@@ -5,21 +5,52 @@ LunaTikZ is a tikzpicture builder written in LUA. It reads the input file
 and its included files, takes every arguments to `\includegraphics` macro
 and tries to build that pdf file from the corresponding tex file in the
 corresponding `tikzpics` directory. In order to use `lunatikz`, the project
-needs to structured specifically.
+needs to structured specifically. And the project should use `subfiles`
+package.
+
 
 # LunaTikZ project directory structure
 
-At the root of every lunatikz project directory, there will be a
-`.lunatikz` directory. This is where lunatikz will store project
-related information, config, and caches. These are the filea lunatikz
-stores in the `.lunatikz/`:
+At the root of every lunatikz project directory, there will be a `.lunatikz`
+directory. This is where lunatikz will store project related information,
+config, and caches. These are the filea lunatikz stores in the `.lunatikz/`
+directory:
 
-| Files | Description|
-|---|---|
-|`config`|Stores the local config of the lunatikz directory|
-|`dep_cache`|Cache file that lunatikz uses to store the dependancy tree pics|
-|`build_entry`|Stores the build entries for each of the directories|
-|`ldep_list`|List of local dependencies, ie name and relative path from root directory|
+<table>
+
+<tr>
+<td> Files </td> <td> Description </td>
+</tr>
+
+<tr>
+<td> <pre>config</pre> </td>
+<td>
+Stores the local config of the lunatikz directory
+</td>
+</tr>
+
+<tr>
+<td> <pre>dep_cache</pre> </td>
+<td>
+Cache file that lunatikz uses to store the dependancy tree of pics
+</td>
+</tr>
+
+<tr>
+<td> <pre>build_entry</pre> </td>
+<td>
+Stores the build entries for each of the directories
+</td>
+</tr>
+
+<tr>
+<td> <pre>dep_list</pre> </td>
+<td>
+List of local dependencies, ie, the name and the relative path from root directory
+</td>
+</tr>
+
+</table>
 
 # Usage
 
