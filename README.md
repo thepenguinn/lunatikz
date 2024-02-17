@@ -36,16 +36,16 @@ out a way to do the above mentioned things with `subcircuits`)
 ### Defining a Subcircuit
 
 ```latex
-                    +-------------+--------- subcircuit command name
-                    v             v
+%                    +-------------+--------- subcircuit command name
+%                    v             v
 \ctikzsubcircuitdef{subfigonecircle} {
-    center, anothercoord% <----------------- comma seperated anchors
+    center, anothercoord%% <----------------- comma seperated anchors
 } {
-    coordinate (#1-center) <------------+
-    circle [radius = 1]                 |
-    ++(1,0)                             |
-    %% NO EMPTY LINES ALLOWED           |
-    coordinate (#1-anothercoord) <------+--- subcircuit definition
+    coordinate (#1-center)% <------------+
+    circle [radius = 1]%                 |
+    ++(1,0)%                             |
+    %% NO EMPTY LINES ALLOWED%           |
+    coordinate (#1-anothercoord)% <------+--- subcircuit definition
 }
 
 ```
@@ -65,17 +65,17 @@ will activate the `subcircuit`
 ```latex
 \begin{tikzpicture}
 
-    \draw             +-------+------------------- name of subcircuit
-                      |       |
-                      |       |   +----------+---- anchor to use
-    (1,0)             v       v   v          v
+    \draw%            +-------+------------------- name of subcircuit
+%                     |       |
+%                     |       |   +----------+---- anchor to use
+    (1,0)%            v       v   v          v
     \subfigonecircle {fstcircle} {anothercoord}
 
-    (fstcircle-center) <-------------------------- using fstcircle's anothercoord
-    \subfigonecircle {seccircle} {anothercoord}    as next coordinate
-    ^                                         ^
-    +-----------------------------------------+--- drawing another circle named
-                                                   seccircle with its anothercoord
+    (fstcircle-center)% <------------------------- using fstcircle's anothercoord
+    \subfigonecircle {seccircle} {anothercoord}%   as next coordinate
+%   ^                                         ^
+%   +-----------------------------------------+--- drawing another circle named
+%                                                  seccircle with its anothercoord
     ;                                              at the center of fstcircle
 
 \end{tikzpicture}
