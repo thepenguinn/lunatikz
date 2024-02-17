@@ -135,33 +135,87 @@ LunaTikZ project directory can have such a pics directory. For an example:
 
 ```
 .
-├── .lunatikz
-│   ├── build_entry
-│   ├── config
-│   ├── dep_cache
-│   └── dep_list
-├── Makefile
-├── catppuccin-mocha.sty
-├── catppuccin-monolight.sty
 ├── circles
-│   ├── Makefile
 │   ├── chapter.tex
-│   └── tikzpics  <─------------------+--- pics directory
-│       ├── need_to_build             |    |
-│       ├── onecircle.tex             |    |
-│       ├── subfigonecircle.tex       |    |
-│       ├── subfigtwocircles.tex      |    |
-│       └── twocircles.tex  <---------+    |
-├── colorscheme.sty                        |
-├── main.tex                               |
-└── tikzpics  <----------------------------+
+│   └── tikzpics
+│       ├── need_to_build
+│       ├── onecircle.tex
+│       ├── subfigonecircle.tex
+│       ├── subfigtwocircles.tex
+│       └── twocircles.tex
+├── main.tex
+└── tikzpics
 ```
 
+Here in the above example `tikzpics/` is the pics directory.
+
+
+## Types of Pics
+
+Theres are two kinds to pics. One is `sub pics` and the other is `end pics`. The
+difference between these two types of pics is that, one cannot be a dependency of
+other `pics`. `end pics` cannot be other pic's dependency (that is why they are
+called `end` pics).
+
+### End Pics
+
+End pics has the typical tikzpicture `begin` `end` block. That is, this one.
+
+```latex
+\begin{tikzpicture}
+
+    \draw
+
+    (1,0)
+    \subfigonecircle {fstcircle} {anothercoord}
+
+    (fstcircle-center)
+    \subfigonecircle {seccircle} {anothercoord}
+
+    ;
+
+\end{tikzpicture}
+```
+
+Each `end pic` can and must have only one of these blocks. And it should be an
+`tikzpicture` environment. Even if you are using `circuitikz`, you can use
+`tikzpicture` environment instead of using `circuitikz` environment. It should
+be fine.
+
+### Sub Pics
+
+Sub pics are the pics that can be other pic's dependencies. They don't have the
+typical `begin` `end` blocks. Instead they will have a `subcircuit` definition and
+activation blocks. And they can also contain the any other `newcommand` definitions
+that will act on the above subfigure after its been drawn. Maybe, like a newcommand
+to label the above subfigure. So that you only need to draw the labels, when you
+need them.(If you are using this subfigure in some other subfigure, then you will
+be implementing another newcommand to draw its labelling in its pics file.)
+
+Typical Content of a Sub Pic will be:
+
+```latex
+\ctikzsubcircuitdef{subfigonecircle} {
+    center, anothercoord%
+} {
+    coordinate (#1-center)
+    circle [radius = 1]
+    ++(1,0)
+    %% NO EMPTY LINES ALLOWED
+    coordinate (#1-anothercoord)
+}
+
+
+\ctikzsubcircuitactivate{subfigonecircle}
+```
+
+One thing to note is that the file name of a `sub pic` should be the same
+as the first argument to `\ctikzsubcircuitdef`, with `.tex` extention.
 
 # Usage
 
 `lunatikz`'s command line interface is similar to that of `git`. lunatikz has different
-subcommands. Here is a table of subcommands;
+subcommands. Here is a table of all currently implemented subcommands:
 
 
 <table>
