@@ -135,24 +135,26 @@ LunaTikZ project directory can have such a pics directory. For an example:
 
 ```
 .
-+-- .lunatikz
-|   +-- build_entry
-|   +-- config
-|   +-- dep_cache
-|   `-- dep_list
-+-- Makefile
-+-- circles
-|   +-- Makefile
-|   +-- chapter.tex
-|   `-- tikzpics  <-------------------+--- pics directory
-|       +-- need_to_build             |    |
-|       +-- onecircle.tex             |    |
-|       +-- subfigonecircle.tex       |    |
-|       +-- subfigtwocircles.tex      |    |
-|       `-- twocircles.tex  <---------+    |
-+-- colorscheme.sty                        |
-+-- main.tex                               |
-`-- tikzpics  <----------------------------+
+├── .lunatikz
+│   ├── build_entry
+│   ├── config
+│   ├── dep_cache
+│   └── dep_list
+├── Makefile
+├── catppuccin-mocha.sty
+├── catppuccin-monolight.sty
+├── circles
+│   ├── Makefile
+│   ├── chapter.tex
+│   └── tikzpics  <─------------------+--- pics directory
+│       ├── need_to_build             |    |
+│       ├── onecircle.tex             |    |
+│       ├── subfigonecircle.tex       |    |
+│       ├── subfigtwocircles.tex      |    |
+│       └── twocircles.tex  <---------+    |
+├── colorscheme.sty                        |
+├── main.tex                               |
+└── tikzpics  <----------------------------+
 ```
 
 
