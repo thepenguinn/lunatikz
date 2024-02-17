@@ -4,4 +4,4 @@ test_dir/
 *.pdf
 *.aux
 *.log
-dep_cache.lua
+test/shapes/.lunatikz/dep_cache
