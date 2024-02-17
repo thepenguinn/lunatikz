@@ -205,23 +205,57 @@ global config is not implemented yet, no merging will happens)
 ### configurable parameters
 
 
+<table>
 
-#### pics.directory (default: tikzpics)
+<tr>
+<td> Config keys </td>
+<td> Defaults Values </td>
+<td> Description </td>
+</tr>
 
+<tr>
+<td>
+<code>pics.directory</code>
+</td>
+<td>
+tikzpics
+</td>
+
+<td>
 
 The directory where pics are stored.
 
 
-#### pics.skip (default: false)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>pics.skip</code>
+</td>
+<td>
+false
+</td>
+
+<td>
 
 If true, skips reading all the files exists in `pics.directory` instead
 reads the pics list from `.lunatikz/gdep_list`, and the user can add a file
 to this list by using `lunatikz add path/to/file`.
 
 
-#### margin (default: 0pt)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>margin</code>
+</td>
+<td>
+0pt
+</td>
+
+<td>
 
 This is the margin that is passed to the
 
@@ -230,15 +264,35 @@ This is the margin that is passed to the
 ```
 
 
-#### style (default: default)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>style</code>
+</td>
+<td>
+default
+</td>
+
+<td>
 
 `style` determines the style of the current build. Setting `style` will
 overrides `style.file` and `style.macro`.
 
 
-#### style.file (default: nil)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>style.file</code>
+</td>
+<td>
+nil
+</td>
+
+<td>
 
 Lets say, user wants to build the pic with a different colorscheme. Each
 different scheme can be seen as a different `style`. Usually, the user will
@@ -248,8 +302,18 @@ set this `style.file` to that file, and lunatikz will check for that macro
 that style.
 
 
-#### style.macro (default: nil)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>style.macro</code>
+</td>
+<td>
+nil
+</td>
+
+<td>
 
 If `style.macro` is set lunatikz will look for first instance of this macro
 and reads its first argument as the `style`.
@@ -258,8 +322,18 @@ Note: Both `style.file` and `style.macro` should be setted in order for
 this to work.
 
 
-#### style.fromroot (default: false)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>style.fromroot</code>
+</td>
+<td>
+false
+</td>
+
+<td>
 
 (NOTE: not implemented yet, currently the `style.file` is always from the
 root directory)
@@ -270,20 +344,43 @@ which lunatikz was invoked. If `style.fromroot` is true, then that path
 will be assumed to be relative to the root directory of the project.
 
 
-#### touch.file (default: need_to_build)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>touch.file</code>
+</td>
+<td>
+need_to_build
+</td>
+
+<td>
 
 If any of the files are changed or any of the pics that are needed by the
 project file needed to be build lunatikz will touch this `touch.file`.
 Note: This file will be in the directory of the build pic.
 
 
-#### touch (default: nil)
+</td>
+</tr>
 
+<tr>
+<td>
+<code>touch</code>
+</td>
+<td>
+nil
+</td>
+
+<td>
 
 Even though `touch.file` is set, lunatikz won't touch the file, `touch` is
 needed to be set to true.
 
+
+</td>
+</tr>
 
 #### watch.list (default: nil)
 
