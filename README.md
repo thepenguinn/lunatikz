@@ -5,13 +5,13 @@ LunaTikZ is a tikzpicture builder written in LUA. It reads the input file
 and its included files, takes every arguments to `\includegraphics` macro
 and tries to build that pdf file from the corresponding tex file in the
 corresponding `tikzpics` directory. In order to use `lunatikz`, the project
-needs to structured specifically. And the project should use `subfiles`
+needs to be structured specifically. And the project should use `subfiles`
 package.
 
 
 # LunaTikZ project directory structure
 
-At the root of every lunatikz project directory, there will be a `.lunatikz`
+At the root of every lunatikz project directory, there will be a `.lunatikz/`
 directory. This is where lunatikz will store project related information,
 config, and caches. These are the filea lunatikz stores in the `.lunatikz/`
 directory:
@@ -186,7 +186,7 @@ exists, lunatikz will build pics for that. If the current directory is inside
 a `pics.directory` then `file` is mandatory.
 
 If the file is in `pics.directory`, then lunatikz will check for
-`\\begin{tikzpics}` and `\\end{tikzpics}` block, in that file. If it finds
+`\begin{tikzpics}` and `\end{tikzpics}` block, in that file. If it finds
 it, lunatikz will build that pic. Otherwise lunatikz will politely refuse.
 `--force` will overrides this behaviour, therefore lunatikz will blindly
 builds the pic. If it fails, lunatikz will call `pdflatex` _miserable_ and
