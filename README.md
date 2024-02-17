@@ -23,28 +23,28 @@ directory:
 </tr>
 
 <tr>
-<td> <pre>config</pre> </td>
+<td> <code>config</code> </td>
 <td>
 Stores the local config of the lunatikz directory
 </td>
 </tr>
 
 <tr>
-<td> <pre>dep_cache</pre> </td>
+<td> <code>dep_cache</code> </td>
 <td>
 Cache file that lunatikz uses to store the dependancy tree of pics
 </td>
 </tr>
 
 <tr>
-<td> <pre>build_entry</pre> </td>
+<td> <code>build_entry</code> </td>
 <td>
 Stores the build entries for each of the directories
 </td>
 </tr>
 
 <tr>
-<td> <pre>dep_list</pre> </td>
+<td> <code>dep_list</code> </td>
 <td>
 List of local dependencies, ie, the name and the relative path from root directory
 </td>
