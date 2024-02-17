@@ -1,6 +1,5 @@
 # LunaTikZ - A TikZ picture builder
 
-
 LunaTikZ is a tikzpicture builder written in LUA. LunaTikZ can resolve
 dependancies between different tikzpictures. And only builds the modified pics
 for a given file. LunaTikZ will read the given `.tex` file and its included
@@ -83,7 +82,28 @@ will activate the `subcircuit`
 ```
 
 
-# LunaTikZ Project Directory Structure
+# Getting Started
+
+To get started using LunaTikZ, you need to become familiar with the **LunaTikZ
+Workflow**. By using LunaTikZ you are basically seperating all of the TikZ pics
+from you document. In that way your document and your figures are completetly
+seperate from each other. The only link to the pics will be an `\includegraphics`
+macro. And LunaTikZ will take care of the rest.
+
+```
+┌───────────────┐              ┌───────────────┐
+│               │              │               │
+│               │              │               │
+│               │              │               │
+│               │   LunaTikZ   │               │
+│ Your Document │ <==========> │ Your TikZpics │
+│               │              │               │
+│               │              │               │
+│               │              │               │
+│               │              │               │
+└───────────────┘              └───────────────┘
+
+```
 
 ## LunaTikZ Directory
 
