@@ -105,6 +105,30 @@ macro. And LunaTikZ will responsible for building that pic from this link.
 +---------------+              +---------------+
 ```
 
+All the pics are stored in the `pics directory`. And LunaTikZ will read all
+these `\includegraphics` and resolves all the needed pics and decides whether
+they are needed to be build. And if needed builds them into pdf files for
+`\includegraphics`.
+
+Below depicts a rough flow chart of this whole process.
+
+
+```
++----------------------+     +----------------+     +----------------------+
+|    Looks for all     |     | Finds TikZ Pic |     |     Resolves its     |
+| the \includegraphics | --> | file for each  | --> |      Dependency      | ---+
++----------------------+     +----------------+     +----------------------+    |
+                                                                                |
+                                                                                |
+                                                                                |
++----------------------+     +----------------+     +----------------------+    |
+|  Produces the pdfs   |     |  If Modified,  |     | Checks any Dependent |    |
+| for \includegraphics | <-- | Build that Pic | <-- |  File has Modified   | <--+
++----------------------+     +----------------+     +----------------------+
+
+```
+
+
 
 ## LunaTikZ Directory
 
