@@ -127,7 +127,52 @@ List of local dependencies, ie, the name and the relative path from root directo
 
 # Usage
 
+`lunatikz`'s command line interface is similar to that of `git`. lunatikz has different
+subcommands. Here is a table of subcommands;
 
+
+<table>
+
+<tr>
+<td> Subcommands </td> <td> Description </td>
+</tr>
+
+<tr>
+<td> <code>init</code> </td>
+<td>
+To initialize a lunatikz directory.
+</td>
+</tr>
+
+<tr>
+<td> <code>config</code> </td>
+<td>
+To set and clear config.
+</td>
+</tr>
+
+<tr>
+<td> <code>build</code> </td>
+<td>
+To build tikzpictures.
+</td>
+</tr>
+
+<tr>
+<td> <code>add</code> </td>
+<td>
+To add files to various lists.
+</td>
+</tr>
+
+<tr>
+<td> <code>remove</code> </td>
+<td>
+To remove files from various lists.
+</td>
+</tr>
+
+</table>
 
 ## init subcommand
 
