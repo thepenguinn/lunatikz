@@ -269,6 +269,75 @@ as the first argument to `\ctikzsubcircuitdef`, with `.tex` extention.
 ie, in the above example, the file name would be `subfigonecircle.tex`. And it should
 be placed inside the pics directory.
 
+## Prerequsites
+
+Beside, above mentioned LaTeX packages, LunaTikZ rely on some other command line
+tools. Table of dependencies:
+
+<table>
+
+<tr>
+<td>
+Package
+</td>
+<td>
+Description
+</td>
+</tr>
+
+<tr>
+<td> <code>
+lua5.3
+</code> </td>
+<td>
+Ofcourse, LunaTikZ is written in lua.
+</td>
+</tr>
+
+<tr>
+<td> <code>
+latex
+</code> </td>
+<td>
+LunaTikZ needs a local install of LaTeX
+</td>
+</tr>
+
+<tr>
+<td> <code>
+pdflatex
+</code> </td>
+<td>
+pdflatex compiles the pdfs
+</td>
+</tr>
+
+<tr>
+<td> <code>
+pdftk
+</code> </td>
+<td>
+Helps to split pdf into seperate pdf files
+</td>
+</tr>
+
+<tr>
+<td> <code>
+core-utils
+</code> </td>
+<td>
+<code>mv</code>, <code>cp</code>, <code>readlink</code>,
+<code>mkdir</code>, <code>rm</code>, <code>find</code>,
+<code>stat</code>, <code>pwd</code>, <code>test</code>,
+<code>touch</code>. You need all of these. If you have a typical
+Linux install, you would probaly have all of these installed.
+</td>
+</tr>
+
+</table>
+
+
+
 ## Typical LunaTikZ Workflow
 
 If you want to see a a working, configured LunaTikZ project, you can take look at the
