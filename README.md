@@ -423,14 +423,18 @@ To remove files from various lists.
 ## init subcommand
 
 
-`init` initializes a lunatikz directory. `lunatikz init [dir]` will
-initialize a lunatikz directory in the `dir`. `dir` is optional and can be
-more than one. if nothing is given, lunatikz will initialize the current
+`init` initializes a lunatikz directory.
+
+```sh
+lunatikz init [dir]
+```
+
+This will initialize a lunatikz directory in the `dir`. `dir` is optional and
+can be more than one. if nothing is given, lunatikz will initialize the current
 directory as a lunatikz directory. If ran inside another lunatikz directory,
-ie, current directory or `dir` has a `.lunatikz` directory lunatikz will
-refuse to initialize the directory as a lunatikz directory (because it's
-already one). Otherwise, lunatikz will initializes the dir as a lunatikz
-directory.
+ie, current directory or `dir` has a `.lunatikz` directory lunatikz will refuse
+to initialize the directory as a lunatikz directory (because it's already one).
+Otherwise, lunatikz will initializes the dir as a lunatikz directory.
 
 If a non existant `dir` was given, lunatikz will create that directory and
 initializes it as a lunatikz directory.
@@ -452,7 +456,9 @@ global config is not implemented yet, no merging will happens)
 
 #### pics.directory
 
-The directory where pics are stored.
+`pics.directory` is where pics are stored. This should not conatin any
+newlines or forward slashes. If preset lunatikz will silently turnicates
+them.
 
 #### pics.skip
 
@@ -465,7 +471,7 @@ to this list by using `lunatikz add path/to/file`.
 This is the margin that is passed to the
 
 ```latex
-\documentclass[tikz, margin = 0pt]{standalone}
+\documentclass[tikz, margin = {0pt}]{standalone}
 ```
 
 #### style
@@ -480,7 +486,7 @@ different scheme can be seen as a different `style`. Usually, the user will
 set some macro to a different colorscheme in some file. Therefore user can
 set this `style.file` to that file, and lunatikz will check for that macro
 (see `style.macro` for setting which macro to check) in that file. And uses
-that style.
+that style. Cannot have any newline charaters.
 
 #### style.macro
 
@@ -504,12 +510,30 @@ will be assumed to be relative to the root directory of the project.
 
 If any of the files are changed or any of the pics that are needed by the
 project file needed to be build lunatikz will touch this `touch.file`.
-Note: This file will be in the directory of the build pic.
+Note: This file will be in the directory of the build pic. Cannot have
+any newline or forward slashes in it. If present lunatikz will silently
+turnicates them.
 
 #### touch
 
 Even though `touch.file` is set, lunatikz won't touch the file, `touch` is
 needed to be set to true.
+
+#### standalone.main
+
+`standalone.main` will be the file name of main standalone file. Should
+not contain any newlines or forward slashes. If present silently turnicated.
+
+#### standalone.sub
+
+`standalone.sub` will be the file name of sub standalone file. Should
+not contain any newlines or forward slashes. If present silently turnicated.
+
+#### standalone.tmpdir
+
+`standalone.tmpdir` will be the name of the tmp directory lunatikz creates for
+building pdfs. Should not contain any newlines or forward slashes. If present
+silently turnicated.
 
 ### Config Keys and Defaults Values
 
@@ -563,6 +587,21 @@ needed to be set to true.
 <tr>
 <td> <code>touch</code> </td>
 <td> <code>false</code> </td>
+</tr>
+
+<tr>
+<td> <code>standalone.main</code> </td>
+<td> <code>\_standalone\_main</code> </td>
+</tr>
+
+<tr>
+<td> <code>standalone.sub</code> </td>
+<td> <code>\_standalone\_sub</code> </td>
+</tr>
+
+<tr>
+<td> <code>standalone.tmpdir</code> </td>
+<td> <code>\_standalone\_tmp</code> </td>
 </tr>
 
 </table>
