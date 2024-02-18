@@ -446,7 +446,7 @@ lunatikz init [dirs]
 This will initialize a lunatikz directory in the `dirs`. `dirs` is optional and
 can be more than one. if nothing is given, lunatikz will initialize the current
 directory as a lunatikz directory. If ran inside another lunatikz directory,
-ie, current directory or `dirs` has a `.lunatikz` directory lunatikz will refuse
+ie, current directory or `dirs` has a `.lunatikz/` directory lunatikz will refuse
 to initialize the directory as a lunatikz directory (because it's already one).
 Otherwise, lunatikz will initialize the dir as a lunatikz directory.
 
@@ -730,14 +730,33 @@ First one will have `1cm - 1cm = 0cm` margin. And the second one will have `1cm
 
 ## add subcommand
 
-
 `add` will add entries to different lists. All of these list are stored
 under `.lunatikz/` directory.
 
-```sh
+By default,
 
+```sh
+lunatikz add [files]
 ```
 
+Above will add to the `dep_list` list.
+
+```sh
+lunatikz add --build-entry file1 --dep-list file2
+```
+
+But this one will add `file1` to the `build_entry` and `file2` to the
+`dep_list`.
+
+### Flags
+
+#### `--build-list`
+
+`--build-list` will add to `build_entry` list.
+
+#### `--dep-list`
+
+`--dep-list` will add to `dep_list` list.
 
 List of lists:
 
@@ -747,7 +766,6 @@ List of lists:
 
 ### dep_list
 
-
 `dep-list` will be the list of dependency files. Basically they are the
 files in the `pics.directory`. User can add files to this list and disable
 `pics.checking`. This will skip checking for dependencies in the
@@ -755,7 +773,11 @@ files in the `pics.directory`. User can add files to this list and disable
 add the dependency files to this list, as they add files to the
 `pics.directory`.
 
-Usage will be `lunatikz add --dep-list [files]`
+Usage will be:
+
+```sh
+lunatikz add --dep-list [files]
+```
 
 `files` can be the list of files. And it is mandatory to specify the
 `files`. It can be relative or absolute paths. But internally lunatikz will
@@ -770,7 +792,11 @@ is invoked without any files as arguments. lunatikz will check for the
 current directory in this list, and if it finds an entry lunatikz will
 build that file. Only one file can be specified for one directory.
 
-Usage will be `lunatikz add --build-entry [files]`
+Usage will be:
+
+```sh
+lunatikz add --build-entry [files]
+```
 
 `files` can be the list of files. And it is mandatory to specify the
 `files`. It can be relative or absolute paths. But internally lunatikz will
@@ -782,6 +808,8 @@ store them as the relative paths from the root directory of the project.
 
 `remove` will remove entries to different lists. `remove` removes what `add`
 adds
+
+Usage will be same as `add` subcommand.
 
 # Rest of the README
 
