@@ -10,6 +10,10 @@ from the corresponding tex file located in the `tikzpics` directories. In order
 to use `lunatikz`, the project needs to be structured specifically. And the
 project should use `subfiles` and `circuitikz` packages.
 
+# Demo
+
+![](./demo/demo.gif)
+
 # Dependent LaTeX Packages
 
 ## Subfiles
