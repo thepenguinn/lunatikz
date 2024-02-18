@@ -591,17 +591,17 @@ silently turnicated.
 
 <tr>
 <td> <code>standalone.main</code> </td>
-<td> <code>\_standalone\_main</code> </td>
+<td> <code>_standalone_main</code> </td>
 </tr>
 
 <tr>
 <td> <code>standalone.sub</code> </td>
-<td> <code>\_standalone\_sub</code> </td>
+<td> <code>_standalone_sub</code> </td>
 </tr>
 
 <tr>
 <td> <code>standalone.tmpdir</code> </td>
-<td> <code>\_standalone\_tmp</code> </td>
+<td> <code>_standalone_tmp</code> </td>
 </tr>
 
 </table>
