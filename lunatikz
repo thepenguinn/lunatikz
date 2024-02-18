@@ -357,14 +357,14 @@ local function split_path(file_path)
 
 end
 
-local function get_gdep_list_from_dir(root_dir, pics_directory, dep_list)
+local function get_dep_list_from_dir(root_dir, pics_directory, dep_list)
 
     assert(pics_directory and pics_directory ~= "",
-        "get_gdep_list_from_dir: pics_directory is empty"
+        "get_dep_list_from_dir: pics_directory is empty"
     )
 
     assert(type(dep_list) == "table",
-        "get_gdep_list_from_dir: pics_directory is empty"
+        "get_dep_list_from_dir: pics_directory is empty"
     )
 
 
@@ -1645,11 +1645,9 @@ local function lunatikz_build(data)
 
     fill_gdep_list(root_dir, dep_list)
 
-    if lconfig["pics.checking.enabled"] then
-        -- update lmodt of each of the
-    else
-        -- get_gdep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.dep_list)
-        -- call get_gdep_list_from_dir to generated dep list
+    if not lconfig["pics.skip"] then
+        data.dep_list = {} -- clearing read dep_list
+        get_dep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.dep_list)
     end
 
     get_pics_list(root_dir, arg_config.file_list, pics_list)
