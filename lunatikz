@@ -1344,6 +1344,7 @@ local function parse_args_config(args_iter)
             if nextarg then
                 -- TODO: nextarg could be an empty string
                 arg_config["pics.directory"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: pics.directory takes an argument"
@@ -1355,6 +1356,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["margin"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: margin takes an argument"
@@ -1364,6 +1366,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["style"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: style takes an argument"
@@ -1373,6 +1376,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["style.file"] = nextarg:gsub("[\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: style.file.path takes an argument"
@@ -1382,6 +1386,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["style.macro"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: style.macro takes an argument"
@@ -1399,6 +1404,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["touch.file"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: touch.file takes an argument"
@@ -1408,6 +1414,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["standalone.main"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: standalone.main takes an argument"
@@ -1417,6 +1424,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["standalone.sub"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: standalone.sub takes an argument"
@@ -1426,6 +1434,7 @@ local function parse_args_config(args_iter)
             nextarg = arg.peek_next()
             if nextarg then
                 arg_config["standalone.tmpdir"] = nextarg:gsub("[\n]", "")
+                arg.skip_next()
             else
                 assert(arg_config.clear,
                     "parse_args_config: standalone.tmpdir takes an argument"
