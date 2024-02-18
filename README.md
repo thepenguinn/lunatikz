@@ -1,20 +1,22 @@
 # LunaTikZ - A TikZ picture builder
 
 LunaTikZ is a tikzpicture builder written in LUA. LunaTikZ can resolve
-dependancies between different tikzpictures. And only builds the modified pics
-for a given file. LunaTikZ will read the given `.tex` file and its included
-files, and takes every argument to `\includegraphics` macro and tries to build
-that pdf file from the corresponding tex file located in the `tikzpics`
-directories. In order to use `lunatikz`, the project needs to be structured
-specifically. And the project should use `subfiles` and `circuitikz` package.
+dependancies between different tikzpictures. And only build the modified pics
+for a given file.
+
+LunaTikZ will read the given `.tex` file and its included files, and takes
+every argument to `\includegraphics` macro and tries to build that pdf file
+from the corresponding tex file located in the `tikzpics` directories. In order
+to use `lunatikz`, the project needs to be structured specifically. And the
+project should use `subfiles` and `circuitikz` packages.
 
 # Dependent LaTeX Packages
 
 ## Subfiles
 
-`subfiles` will take care of including main files preamble portion to the
-sub files while building tikzpicture and helps to determine the which one
-is the main file.
+`subfiles` will take care of including main file's preamble portion to the sub
+files while building tikzpicture and helps to determine which one is the main
+file.
 
 ## Circuitikz
 
@@ -25,7 +27,7 @@ has some disadvantages. It needs to be written in a way that it is valid inside
 a `\draw ;` block (because it is implemented in a way that it is finally drawn
 with a single `\draw ;` command, but it's possible to reimplement this in a way
 that allows multiple `\draw ;` blocks to be included inside the `subcircuit`
-definitions, more on this later).
+definitions, more on that later).
 
 The above mentioned disadvantage also means that we can't use anything that are
 parsed by LaTeX or any other packages other than TikZ itself. This means no
@@ -86,9 +88,9 @@ will activate the `subcircuit`
 
 To get started using LunaTikZ, you need to become familiar with the **LunaTikZ
 Workflow**. By using LunaTikZ you are basically seperating all of the TikZ pics
-from you document. In that way your document and your figures are completetly
+from your document. In that way your document and your figures are completetly
 seperate from each other. The only link to the pics will be an `\includegraphics`
-macro. And LunaTikZ will responsible for building that pic from this link.
+macro. And LunaTikZ will be responsible for building that pic from this link.
 
 
 ```
@@ -107,7 +109,7 @@ macro. And LunaTikZ will responsible for building that pic from this link.
 
 All the pics are stored in the `pics directory`. And LunaTikZ will read all
 these `\includegraphics` and resolves all the needed pics and decides whether
-they are needed to be build. And if needed builds them into pdf files for
+they are needed to be build. And if needed, builds them into pdf files for
 `\includegraphics`.
 
 Below depicts a rough flow chart of this whole process.
@@ -165,7 +167,8 @@ Stores the build entries for each of the directories
 <tr>
 <td> <code>dep_list</code> </td>
 <td>
-List of local dependencies, ie, the name and the relative path from root directory
+List of local dependencies, ie, the name and the relative path from project's
+root directory
 </td>
 </tr>
 
@@ -173,8 +176,8 @@ List of local dependencies, ie, the name and the relative path from root directo
 
 ## Pics Directory
 
-Pics Directory is where all the `tikzpictures` are stored. Any directory inside a
-LunaTikZ project directory can have such a pics directory. For an example:
+Pics Directory is where all the `tikzpictures` are stored. Any directory inside
+a LunaTikZ project directory can have such a pics directory. For an example:
 
 ```
 .
@@ -195,10 +198,13 @@ Here in the above example `tikzpics/` is the pics directory.
 
 ## Types of Pics
 
-Theres are two kinds to pics. One is `sub pics` and the other is `end pics`. The
-difference between these two types of pics is that, one cannot be a dependency of
-other `pics`. `end pics` cannot be other pic's dependency (that is why they are
-called `end` pics). And `sub pics` can't be converted to pdfs directly.
+Theres are two kinds to pics. One kind is a `sub pic` and the other is an `end
+pic`. The difference between these two types of pics is that, one cannot be a
+dependency of other `pics`. `end pics` cannot be other pic's dependency (that
+is why they are called `end` pics). And `sub pics` can't be converted to pdfs
+directly. If you want to convert a `sub pic` into a pdf, you need to wrap that
+`sub pic` with an `end pic`. Then link that `end pic` from the main document
+using `\includegraphics`.
 
 ### End Pics
 
@@ -233,17 +239,22 @@ and this file is in `tikzpics/` directory, then `\includegraphics` would be:
 \includegraphics [any optional arguments] {tikzpics/onecircle.pdf}
 ```
 
+It could be a relative path or an absolute one. Just pretend that there is a
+`.pdf` file beside the `end pic` that you want to include, with the same
+basename and `.pdf` extention. And LunaTikZ will do the rest of the **Magic**.
+
 ### Sub Pics
 
 Sub pics are the pics that can be other pic's dependencies. They don't have the
-typical `begin` `end` blocks. Instead they will have a `subcircuit` definition and
-activation blocks. And they can also contain the any other `newcommand` definitions
-that will act on the above subfigure after its been drawn. Maybe, like a newcommand
-to label the above subfigure. So that you only need to draw the labels, when you
-need them.(If you are using this subfigure in some other subfigure, then you will
-be implementing another newcommand to draw its labelling in its pics file.)
+typical `begin` `end` blocks. Instead they will have a `subcircuit` definition
+and activation blocks. And they can also contain the any other `newcommand`
+definitions that will act on the above subfigure after it's been drawn. Maybe,
+like a newcommand to label the above subfigure. So that you only need to draw
+the labels, when you need them.(If you are using this subfigure in some other
+subfigure, then you will be implementing another newcommand to draw its
+labelling in its pics file.)
 
-Typical Content of a Sub Pic will be:
+Typical content of a Sub Pic will be:
 
 ```latex
 \ctikzsubcircuitdef{subfigonecircle} {
@@ -263,11 +274,10 @@ Typical Content of a Sub Pic will be:
 %% goes here.
 ```
 
-NOTE: One thing to note is that the file name of a `sub pic` should be the same
-as the first argument to `\ctikzsubcircuitdef`, with `.tex` extention.
-
-ie, in the above example, the file name would be `subfigonecircle.tex`. And it should
-be placed inside the pics directory.
+NOTE: The file name of a `sub pic` should be the same as the first argument to
+`\ctikzsubcircuitdef`, with `.tex` extention. ie, in the above example, the
+file name would be `subfigonecircle.tex`. And it should be placed inside the
+pics directory.
 
 ## Prerequsites
 
@@ -359,7 +369,7 @@ this command from `test/shapes/` directory.
 ```
 
 If everything is right, (ie, you have installed all the prerequsites) lunatikz
-will build the pdfs from those `.tex` files. Then look inside all of the
+will build the pdfs from those `.tex` files. Now look inside all of the
 `tikzpics/` directories, you could see the `.pdf` files, lunatikz generated.
 
 Now you can compile the `main.tex` file using `pdflatex`.
