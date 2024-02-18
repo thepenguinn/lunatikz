@@ -1,13 +1,5 @@
 #!/usr/bin/env lua
 
--- #!/data/data/com.termux/files/usr/bin/lua5.3
-
-local StandaloneMain   = "_standalone_main"
-local StandaloneSub    = "_standalone_sub"
-local StandaloneTmpDir = "_standalone_tmp"
-local DryRun = false
-local TouchFile = nil
-
 local function tb_log(lvl, msg)
     if lvl == "warn" then
         print("WARN: " .. msg)
