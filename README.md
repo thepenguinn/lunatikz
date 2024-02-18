@@ -200,7 +200,7 @@ Here in the above example `tikzpics/` is the pics directory.
 Theres are two kinds to pics. One is `sub pics` and the other is `end pics`. The
 difference between these two types of pics is that, one cannot be a dependency of
 other `pics`. `end pics` cannot be other pic's dependency (that is why they are
-called `end` pics).
+called `end` pics). And `sub pics` can't be converted to pdfs directly.
 
 ### End Pics
 
@@ -227,6 +227,14 @@ Each `end pic` can and must have only one of these blocks. And it should be an
 `tikzpicture` environment instead of using `circuitikz` environment. It should
 be fine.
 
+NOTE: The file name of an `end pic` must be the same as in the
+`\includegraphics` with `.tex` replaced with `.pdf`. ie, if the name is `onecircle.tex`
+and this file is in `tikzpics/` directory, then `\includegraphics` would be:
+
+```latex
+\includegraphics [any optional arguments] {tikzpics/onecircle.pdf}
+```
+
 ### Sub Pics
 
 Sub pics are the pics that can be other pic's dependencies. They don't have the
@@ -252,10 +260,16 @@ Typical Content of a Sub Pic will be:
 
 
 \ctikzsubcircuitactivate{subfigonecircle}
+
+%% Any other newcommands you like to implement
+%% goes here.
 ```
 
-One thing to note is that the file name of a `sub pic` should be the same
+NOTE: One thing to note is that the file name of a `sub pic` should be the same
 as the first argument to `\ctikzsubcircuitdef`, with `.tex` extention.
+
+ie, in the above example, the file name would be `subfigonecircle.tex`. And it should
+be placed inside the pics directory.
 
 # Usage
 
