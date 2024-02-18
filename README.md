@@ -4,15 +4,13 @@ LunaTikZ is a tikzpicture builder written in LUA. LunaTikZ can resolve
 dependancies between different tikzpictures. And only build the modified pics
 for a given file.
 
+![](./demo/demo.gif)
+
 LunaTikZ will read the given `.tex` file and its included files, and takes
 every argument to `\includegraphics` macro and tries to build that pdf file
 from the corresponding tex file located in the `tikzpics` directories. In order
 to use `lunatikz`, the project needs to be structured specifically. And the
 project should use `subfiles` and `circuitikz` packages.
-
-# Demo
-
-![](./demo/demo.gif)
 
 # Dependent LaTeX Packages
 
