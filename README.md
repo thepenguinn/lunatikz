@@ -475,6 +475,24 @@ The above snippet will set `pics.directory` to `mypics`, `style` to
 Running `lunatikz config` will print the current config for the current project
 directory.
 
+### flags
+
+#### `--clear`
+
+`--clear` will clears the given keys.
+
+```sh
+lunatikz --clear pics.directory style
+```
+
+#### `--global`
+
+NOTE: Not implemented yet.
+
+#### `--local`
+
+NOTE: Not implemented yet.
+
 ### configurable parameters
 
 #### pics.directory
@@ -639,10 +657,10 @@ will be silently turnicated.
 
 </table>
 
+
 ## build subcommand
 
-
-`build [file]` subcommand will build pics for the specified file. `file` is
+`build` subcommand will build pics for the specified file. `file` is
 optional. If no files are given, lunatikz will look for `build-entry` for the
 current directory in the local config, if lunatikz finds it, and the file
 exists, lunatikz will build pics for that. If the current directory is inside
