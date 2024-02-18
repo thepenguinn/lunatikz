@@ -128,8 +128,6 @@ Below depicts a rough flow chart of this whole process.
 
 ```
 
-
-
 ## LunaTikZ Directory
 
 At the root of every lunatikz project directory, there will be a `.lunatikz/`
@@ -271,10 +269,43 @@ as the first argument to `\ctikzsubcircuitdef`, with `.tex` extention.
 ie, in the above example, the file name would be `subfigonecircle.tex`. And it should
 be placed inside the pics directory.
 
-# Usage
+## Typical LunaTikZ Workflow
 
-`lunatikz`'s command line interface is similar to that of `git`. lunatikz has different
-subcommands. Here is a table of all currently implemented subcommands:
+If you want to see a a working, configured LunaTikZ project, you can take look at the
+example project in the `test/shapes/` directory of this repo.
+
+First of all, clone this repo.
+
+```sh
+git clone https://github.com/thepenguinn/lunatikz
+cd lunatikz/test/shapes
+```
+
+Then if you look inside all of the `tikzpics/` directories, you won't see any
+pdf files. In order to generate them you need to build them with lunatikz. Run
+this command from `test/shapes/` directory.
+
+```sh
+../../lunatikz build main.tex
+```
+
+If everything is right, (ie, you have installed all the prerequsites) lunatikz
+will build the pdfs from those `.tex` files. Then look inside all of the
+`tikzpics/` directories, you could see the `.pdf` files, lunatikz generated.
+
+Now you can compile the `main.tex` file using `pdflatex`.
+
+```sh
+pdflatex -halt-on-error main.tex
+```
+
+This will generate the final document.
+
+# Command Line Interface
+
+`lunatikz`'s command line interface is similar to that of `git`. lunatikz has
+different subcommands. Here is a table of all currently implemented
+subcommands:
 
 
 <table>
