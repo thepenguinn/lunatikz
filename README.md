@@ -382,6 +382,20 @@ pdflatex -halt-on-error main.tex
 
 This will generate the final document.
 
+# Installing lunatikz
+
+If you haven't cloned the repo, clone this repo and `cd` into it
+
+```sh
+git clone https://github.com/thepenguinn/lunatikz
+cd lunatikz
+```
+lunatikz is a single file in the root directory of this repo. Therefore
+you can `cp` it to one of you PATHs.
+
+As long as you have installed all of the prerequsites, lunatikz will work
+just fine.
+
 # Command Line Interface
 
 `lunatikz`'s command line interface is similar to that of `git`. lunatikz has
