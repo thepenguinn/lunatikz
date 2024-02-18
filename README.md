@@ -475,7 +475,7 @@ The above snippet will set `pics.directory` to `mypics`, `style` to
 Running `lunatikz config` will print the current config for the current project
 directory.
 
-### flags
+### Flags
 
 #### `--clear`
 
@@ -484,6 +484,9 @@ directory.
 ```sh
 lunatikz --clear pics.directory style
 ```
+
+Above will clear the user set `pics.directory` and `style`. After this they
+will have their default values.
 
 #### `--global`
 
@@ -660,20 +663,69 @@ will be silently turnicated.
 
 ## build subcommand
 
-`build` subcommand will build pics for the specified file. `file` is
-optional. If no files are given, lunatikz will look for `build-entry` for the
-current directory in the local config, if lunatikz finds it, and the file
-exists, lunatikz will build pics for that. If the current directory is inside
-a `pics.directory` then `file` is mandatory.
+`build` subcommand will build pics for the specified files.
 
-If the file is in `pics.directory`, then lunatikz will check for
-`\begin{tikzpics}` and `\end{tikzpics}` block, in that file. If it finds
-it, lunatikz will build that pic. Otherwise lunatikz will politely refuse.
-`--force` will overrides this behaviour, therefore lunatikz will blindly
-builds the pic. If it fails, lunatikz will call `pdflatex` _miserable_ and
-exits.
+Usage will be:
 
-(NOTE: `--force` is not yet implemented)
+```sh
+lunatikz build [files]
+```
+
+`files` is optional. If no files are given, lunatikz will look for
+`build_entry` for the current directory, if lunatikz finds it, and the file
+exists, lunatikz will build pics for that. If the current directory is inside a
+`pics.directory` then `files` is mandatory.
+
+If the file is in `pics.directory`, that is if the given file is an `end pic`,
+then lunatikz will check for `\begin{tikzpics}` and `\end{tikzpics}` block (to
+make sure that its an `end pic`), in that file. If it finds it, lunatikz will
+build that pic. Otherwise lunatikz will politely refuse.
+
+File name of the discrete `end pic` pdf will be `<basename>-<style>.pdf`
+
+### Flags
+
+#### `--output-dir`
+
+`--output-dir` will take relative or an absolute file path. Only used
+when you are building discrete `end pics`. If the directory doesn't exist,
+lunatikz will create it. And places all the build discrete pics inside it.
+If not specified, the outputs will be place in the current directory.
+
+#### `--margin`
+
+`--margin` wiil set the margin of each of the `end pics`. Only applied when
+building discrete `end pics`. This does not affect the `margin` config key.
+This will be relative to the `margin` config key. ie, if `margin` is `1cm`.
+And if you run:
+
+```sh
+lunatikz build --margin 2cm tikzpics/onecircle.tex
+```
+
+This will generate a pdf file `onecircle-default.pdf` in the current directory,
+that has a margin of `1cm + 2cm = 3cm`.
+
+If you want 0cm margin, you can run:
+
+```sh
+lunatikz build --margin "-1cm" tikzpics/onecircle.tex
+```
+
+This will remove the margin applied by the `margin` config.
+
+The order of `--margin` is also important.
+
+```sh
+lunatikz build --margin "-1cm" tikzpics/onecircle.tex --margin "0cm" tikzpics/twocircles.tex
+```
+
+First one will have `1cm - 1cm = 0cm` margin. And the second one will have `1cm
++ 0cm = 1cm` margin.
+
+#### `--dry-run`
+
+`--dry-run` will output the standalone files and exits.
 
 
 ## add subcommand
@@ -682,13 +734,18 @@ exits.
 `add` will add entries to different lists. All of these list are stored
 under `.lunatikz/` directory.
 
+```sh
+
+```
+
+
 List of lists:
 
 - dep_list
 - build_entry
 
 
-#### dep_list
+### dep_list
 
 
 `dep-list` will be the list of dependency files. Basically they are the
@@ -705,7 +762,7 @@ Usage will be `lunatikz add --dep-list [files]`
 store them as the relative paths from the root directory of the project.
 
 
-#### build_entry
+### build_entry
 
 
 `build_entry` will be the list of files that are used when `lunatikz build`
