@@ -55,8 +55,8 @@ out a way to do the above mentioned things with `subcircuits`)
 ### Activating a Subcircuit
 
 After the above definition, `circuitikz` needs to calculate the positions of
-the custom anchors. For that, we to activate the `subcircuit`. The following
-will activate the `subcircuit`
+the custom anchors. For that, we need to activate the `subcircuit`. The
+following will activate the `subcircuit`
 
 ```latex
 \ctikzsubcircuitactivate{subfigonecircle}
@@ -73,7 +73,7 @@ will activate the `subcircuit`
     (1,0)%            v       v   v          v
     \subfigonecircle {fstcircle} {anothercoord}
 
-    (fstcircle-center)% <------------------------- using fstcircle's anothercoord
+    (fstcircle-center)% <------------------------- using fstcircle's center
     \subfigonecircle {seccircle} {anothercoord}%   as next coordinate
 %   ^                                         ^
 %   +-----------------------------------------+--- drawing another circle named
@@ -109,8 +109,8 @@ macro. And LunaTikZ will be responsible for building that pic from this link.
 
 All the pics are stored in the `pics directory`. And LunaTikZ will read all
 these `\includegraphics` and resolves all the needed pics and decides whether
-they are needed to be build. And if needed, builds them into pdf files for
-`\includegraphics`.
+they are needed to be build. And if needed, LunaTikZ will build them into pdf
+files for `\includegraphics`.
 
 Below depicts a rough flow chart of this whole process.
 
@@ -129,155 +129,6 @@ Below depicts a rough flow chart of this whole process.
 +----------------------+     +----------------+     +----------------------+
 
 ```
-
-## LunaTikZ Directory
-
-At the root of every lunatikz project directory, there will be a `.lunatikz/`
-directory. This is where lunatikz will store project related information,
-config, and caches. Here is a table of files that lunatikz stores in the
-`.lunatikz/` directory:
-
-<table>
-
-<tr>
-<td> Files </td> <td> Description </td>
-</tr>
-
-<tr>
-<td> <code>config</code> </td>
-<td>
-Stores the local config of the lunatikz directory
-</td>
-</tr>
-
-<tr>
-<td> <code>dep_cache</code> </td>
-<td>
-Cache file that lunatikz uses to store the dependancy tree of pics
-</td>
-</tr>
-
-<tr>
-<td> <code>build_entry</code> </td>
-<td>
-Stores the build entries for each of the directories
-</td>
-</tr>
-
-<tr>
-<td> <code>dep_list</code> </td>
-<td>
-List of local dependencies, ie, the name and the relative path from project's
-root directory
-</td>
-</tr>
-
-</table>
-
-## Pics Directory
-
-Pics Directory is where all the `tikzpictures` are stored. Any directory inside
-a LunaTikZ project directory can have such a pics directory. For an example:
-
-```
-.
-├── circles
-│   ├── chapter.tex
-│   └── tikzpics
-│       ├── need_to_build
-│       ├── onecircle.tex
-│       ├── subfigonecircle.tex
-│       ├── subfigtwocircles.tex
-│       └── twocircles.tex
-├── main.tex
-└── tikzpics
-```
-
-Here in the above example `tikzpics/` is the pics directory.
-
-
-## Types of Pics
-
-Theres are two kinds to pics. One kind is a `sub pic` and the other is an `end
-pic`. The difference between these two types of pics is that, one cannot be a
-dependency of other `pics`. `end pics` cannot be other pic's dependency (that
-is why they are called `end` pics). And `sub pics` can't be converted to pdfs
-directly. If you want to convert a `sub pic` into a pdf, you need to wrap that
-`sub pic` with an `end pic`. Then link that `end pic` from the main document
-using `\includegraphics`.
-
-### End Pics
-
-End pics has the typical tikzpicture `begin` `end` block. That is, this one.
-
-```latex
-\begin{tikzpicture}
-
-    \draw
-
-    (1,0)
-    \subfigonecircle {fstcircle} {anothercoord}
-
-    (fstcircle-center)
-    \subfigonecircle {seccircle} {anothercoord}
-
-    ;
-
-\end{tikzpicture}
-```
-
-Each `end pic` can and must have only one of these blocks. And it should be an
-`tikzpicture` environment. Even if you are using `circuitikz`, you can use
-`tikzpicture` environment instead of using `circuitikz` environment. It should
-be fine.
-
-NOTE: The file name of an `end pic` must be the same as in the
-`\includegraphics` with `.tex` replaced with `.pdf`. ie, if the name is `onecircle.tex`
-and this file is in `tikzpics/` directory, then `\includegraphics` would be:
-
-```latex
-\includegraphics [any optional arguments] {tikzpics/onecircle.pdf}
-```
-
-It could be a relative path or an absolute one. Just pretend that there is a
-`.pdf` file beside the `end pic` that you want to include, with the same
-basename and `.pdf` extention. And LunaTikZ will do the rest of the **Magic**.
-
-### Sub Pics
-
-Sub pics are the pics that can be other pic's dependencies. They don't have the
-typical `begin` `end` blocks. Instead they will have a `subcircuit` definition
-and activation blocks. And they can also contain the any other `newcommand`
-definitions that will act on the above subfigure after it's been drawn. Maybe,
-like a newcommand to label the above subfigure. So that you only need to draw
-the labels, when you need them.(If you are using this subfigure in some other
-subfigure, then you will be implementing another newcommand to draw its
-labelling in its pics file.)
-
-Typical content of a Sub Pic will be:
-
-```latex
-\ctikzsubcircuitdef{subfigonecircle} {
-    center, anothercoord%
-} {
-    coordinate (#1-center)
-    circle [radius = 1]
-    ++(1,0)
-    %% NO EMPTY LINES ALLOWED
-    coordinate (#1-anothercoord)
-}
-
-
-\ctikzsubcircuitactivate{subfigonecircle}
-
-%% Any other newcommands you like to implement
-%% goes here.
-```
-
-NOTE: The file name of a `sub pic` should be the same as the first argument to
-`\ctikzsubcircuitdef`, with `.tex` extention. ie, in the above example, the
-file name would be `subfigonecircle.tex`. And it should be placed inside the
-pics directory.
 
 ## Prerequsites
 
@@ -346,12 +197,163 @@ Linux install, you would probaly have all of these installed.
 
 </table>
 
+## LunaTikZ Directory
 
+At the root of every lunatikz project directory, there will be a `.lunatikz/`
+directory. This is where lunatikz will store project related information,
+config, and caches. Here is a table of files that lunatikz stores in the
+`.lunatikz/` directory:
+
+<table>
+
+<tr>
+<td> Files </td> <td> Description </td>
+</tr>
+
+<tr>
+<td> <code>config</code> </td>
+<td>
+Stores the local config of the lunatikz directory
+</td>
+</tr>
+
+<tr>
+<td> <code>dep_cache</code> </td>
+<td>
+Cache file that lunatikz uses to store the dependancy tree of pics
+</td>
+</tr>
+
+<tr>
+<td> <code>build_entry</code> </td>
+<td>
+Stores the build entries for each of the directories
+</td>
+</tr>
+
+<tr>
+<td> <code>dep_list</code> </td>
+<td>
+List of local dependencies, ie, the name and the relative path from project's
+root directory
+</td>
+</tr>
+
+</table>
+
+## Pics Directory
+
+Pics Directory is where all the `tikzpictures` are stored. Any directory inside
+a LunaTikZ project directory can have such a pics directory. For an example:
+
+```
+.
+├── circles
+│   ├── chapter.tex
+│   └── tikzpics
+│       ├── need_to_build
+│       ├── onecircle.tex
+│       ├── subfigonecircle.tex
+│       ├── subfigtwocircles.tex
+│       └── twocircles.tex
+├── main.tex
+└── tikzpics
+```
+
+Here in the above example, `tikzpics/` is the pics directory.
+
+
+## Types of Pics
+
+There are two kinds to pics. One kind is a `sub pic` and the other is an `end
+pic`. The difference between these two types of pics is that, one cannot be a
+dependency of other `pics` and the other can't be build into a `pdf` file.
+
+`end pics` cannot be other pic's dependency (that is why they are called `end`
+pics). On the other hand, `sub pics` can't be converted to pdfs directly. If
+you want to convert a `sub pic` into a pdf, you need to wrap that `sub pic`
+with an `end pic`. Then link that `end pic` from the main document using
+`\includegraphics`.
+
+### End Pics
+
+End pics has the typical tikzpicture `begin` `end` block. That is, this one.
+
+```latex
+\begin{tikzpicture}
+
+    \draw
+
+    (1,0)
+    \subfigonecircle {fstcircle} {anothercoord}
+
+    (fstcircle-center)
+    \subfigonecircle {seccircle} {anothercoord}
+
+    ;
+
+\end{tikzpicture}
+```
+
+Each `end pic` can and must have only one of these blocks. And it should be an
+`tikzpicture` environment. Even if you are using `circuitikz`, you can use
+`tikzpicture` environment instead of `circuitikz` environment. It should work
+just like before.
+
+NOTE: The file name of an `end pic` must be the same as in the
+`\includegraphics` with `.pdf` replaced with `.tex`. ie, if the name of the
+`end pic` file is `onecircle.tex` and it is located in `tikzpics/` directory,
+then `\includegraphics` would be:
+
+```latex
+\includegraphics [any optional arguments] {tikzpics/onecircle.pdf}
+```
+
+It could be a relative path or an absolute (don't do this, I know you are
+better than that) one. Just pretend that there is a `.pdf` file beside the `end
+pic` that you want to include, with the same basename and `.pdf` extention. And
+LunaTikZ will do the rest of the **Magic**.
+
+### Sub Pics
+
+Sub pics are the pics that can be other pic's dependencies. They don't have the
+typical `begin` `end` blocks. Instead they will have a subcircuit `definition`
+and `activation` blocks. And they can also contain any other `newcommand`
+definitions that will act on the above subfigure after it's been drawn. Maybe,
+like a newcommand to label the above subfigure. So that you only need to draw
+the labels, when you need them.(If you are using this subfigure in some other
+subfigure, then you will be implementing another newcommand to draw its
+labelling in its pics file.)
+
+Typical content of a Sub Pic will be:
+
+```latex
+\ctikzsubcircuitdef{subfigonecircle} {
+    center, anothercoord%
+} {
+    coordinate (#1-center)
+    circle [radius = 1]
+    ++(1,0)
+    %% NO EMPTY LINES ALLOWED
+    coordinate (#1-anothercoord)
+}
+
+
+\ctikzsubcircuitactivate{subfigonecircle}
+
+%% Any other newcommands you like to implement
+%% goes here.
+```
+
+NOTE: The file name of a `sub pic` should be the same as the first argument to
+`\ctikzsubcircuitdef`, with `.tex` extention. ie, in the above example, the
+file name would be `subfigonecircle.tex`. And it should be placed inside the
+pics directory.
 
 ## Typical LunaTikZ Workflow
 
-If you want to see a a working, configured LunaTikZ project, you can take look at the
-example project in the `test/shapes/` directory of this repo.
+If you want to see a a working, configured LunaTikZ project, you can take look
+at the example project in the `test/shapes/` directory of this repo.
 
 First of all, clone this repo.
 
@@ -360,8 +362,8 @@ git clone https://github.com/thepenguinn/lunatikz
 cd lunatikz/test/shapes
 ```
 
-Then if you look inside all of the `tikzpics/` directories, you won't see any
-pdf files. In order to generate them you need to build them with lunatikz. Run
+Then look inside all of the `tikzpics/` directories, you won't be seeing any
+pdf files. In order to generate them, you need to build them with lunatikz. Run
 this command from `test/shapes/` directory.
 
 ```sh
@@ -383,7 +385,7 @@ This will generate the final document.
 # Command Line Interface
 
 `lunatikz`'s command line interface is similar to that of `git`. lunatikz has
-different subcommands. Here is a table of all currently implemented
+different subcommands. Here is a table of all of the currently implemented
 subcommands:
 
 
@@ -435,24 +437,24 @@ To remove files from various lists.
 
 `init` initializes a lunatikz directory.
 
+Usage will be:
+
 ```sh
-lunatikz init [dir]
+lunatikz init [dirs]
 ```
 
-This will initialize a lunatikz directory in the `dir`. `dir` is optional and
+This will initialize a lunatikz directory in the `dirs`. `dirs` is optional and
 can be more than one. if nothing is given, lunatikz will initialize the current
 directory as a lunatikz directory. If ran inside another lunatikz directory,
-ie, current directory or `dir` has a `.lunatikz` directory lunatikz will refuse
+ie, current directory or `dirs` has a `.lunatikz` directory lunatikz will refuse
 to initialize the directory as a lunatikz directory (because it's already one).
-Otherwise, lunatikz will initializes the dir as a lunatikz directory.
+Otherwise, lunatikz will initialize the dir as a lunatikz directory.
 
-If a non existant `dir` was given, lunatikz will create that directory and
+If a non existant `dirs` was given, lunatikz will create that directory and
 initializes it as a lunatikz directory.
 
 
-
 ## config subcommand
-
 
 lunatikz `config` will help the user to set configuration on a per project
 basis, or a global wide basis (NOTE: global config is not yet implemented).
@@ -461,24 +463,35 @@ lunatikz will read per project `config` and merges it with global `config`.
 The per project `config` can override the global `config`. (NOTE: since
 global config is not implemented yet, no merging will happens)
 
+Usage will be:
+
+```sh
+lunatikz config pics.directory mypics style catppuccin touch
+```
+
+The above snippet will set `pics.directory` to `mypics`, `style` to
+`catppuccin` and enables `touch`.
+
+Running `lunatikz config` will print the current config for the current project
+directory.
 
 ### configurable parameters
 
 #### pics.directory
 
-`pics.directory` is where pics are stored. This should not conatin any
-newlines or forward slashes. If preset lunatikz will silently turnicates
-them.
+`pics.directory` is where the pics are stored. This should not contain any
+newlines or forward slashes. If preset lunatikz will silently turnicates them.
 
 #### pics.skip
 
-If true, skips reading all the files exists in `pics.directory` instead
-reads the pics list from `.lunatikz/gdep_list`, and the user can add a file
-to this list by using `lunatikz add path/to/file`.
+If true, skips reading all the files exists in `pics.directory` instead reads
+the dependency list from `.lunatikz/dep_list`, and the user can add files to
+this list by using `lunatikz add path/to/file` (see `add` subcommand).
 
 #### margin
 
-This is the margin that is passed to the
+This is the margin that is passed to the `\documentclass` of `standalone.main`
+file. This will be wrapped in curly braces.
 
 ```latex
 \documentclass[tikz, margin = {0pt}]{standalone}
@@ -487,16 +500,17 @@ This is the margin that is passed to the
 #### style
 
 `style` determines the style of the current build. Setting `style` will
-overrides `style.file` and `style.macro`.
+takes precedence than `style.file` and `style.macro`. ie, if `style` is
+set, lunatikz won't look for `style` in `style.file`.
 
 #### style.file
 
-Lets say, user wants to build the pic with a different colorscheme. Each
-different scheme can be seen as a different `style`. Usually, the user will
-set some macro to a different colorscheme in some file. Therefore user can
-set this `style.file` to that file, and lunatikz will check for that macro
-(see `style.macro` for setting which macro to check) in that file. And uses
-that style. Cannot have any newline charaters.
+Lets say, you want to build the pic with a different colorscheme. Each
+different scheme can be seen as a different `style`. Usually, the colorscheme
+is set by setting some macro to a different colorscheme in some file. Therefore
+we can set this `style.file` to that file, and lunatikz will check for that
+macro (see `style.macro` for setting which macro to check) in that file. And
+uses that style. Cannot have any newline charaters.
 
 #### style.macro
 
@@ -518,11 +532,18 @@ will be assumed to be relative to the root directory of the project.
 
 #### touch.file
 
-If any of the files are changed or any of the pics that are needed by the
-project file needed to be build lunatikz will touch this `touch.file`.
-Note: This file will be in the directory of the build pic. Cannot have
-any newline or forward slashes in it. If present lunatikz will silently
-turnicates them.
+If any of the `end pic` needed to be rebuild, then we need to inform the build
+system (that we use to build the rest of the document) that it needs to rebuild
+the document.
+
+`touch.file` is trying to solve this issue. You can set `touch.file` to some
+file and if any of the `end pics` are rebuild, lunatikz will touch this file.
+(only works when `touch` is enabled). If you are using `make` you can run
+`lunatikz` on the file initially and tell `make` to rebuild the document if
+this `touch.file` is changed.
+
+Cannot have any newline or forward slashes in it. If present lunatikz will
+silently turnicates them.
 
 #### touch
 
@@ -531,19 +552,21 @@ needed to be set to true.
 
 #### standalone.main
 
-`standalone.main` will be the file name of main standalone file. Should
-not contain any newlines or forward slashes. If present silently turnicated.
+`standalone.main` will be the file name of main standalone file. Should not
+contain any newlines or forward slashes. If present, will be silently
+turnicated.
 
 #### standalone.sub
 
-`standalone.sub` will be the file name of sub standalone file. Should
-not contain any newlines or forward slashes. If present silently turnicated.
+`standalone.sub` will be the file name of sub standalone file. Should not
+contain any newlines or forward slashes. If present, will be silently
+turnicated.
 
 #### standalone.tmpdir
 
 `standalone.tmpdir` will be the name of the tmp directory lunatikz creates for
-building pdfs. Should not contain any newlines or forward slashes. If present
-silently turnicated.
+building pdfs. Should not contain any newlines or forward slashes. If present,
+will be silently turnicated.
 
 ### Config Keys and Defaults Values
 
