@@ -286,45 +286,45 @@ Description
 </tr>
 
 <tr>
-<td> <code>
+<td> <pre>
 lua5.3
-</code> </td>
+</pre> </td>
 <td>
 Ofcourse, LunaTikZ is written in lua.
 </td>
 </tr>
 
 <tr>
-<td> <code>
+<td> <pre>
 latex
-</code> </td>
+</pre> </td>
 <td>
 LunaTikZ needs a local install of LaTeX
 </td>
 </tr>
 
 <tr>
-<td> <code>
+<td> <pre>
 pdflatex
-</code> </td>
+</pre> </td>
 <td>
-pdflatex compiles the pdfs
+<code>pdflatex</code> compiles the pdfs
 </td>
 </tr>
 
 <tr>
-<td> <code>
+<td> <pre>
 pdftk
-</code> </td>
+</pre> </td>
 <td>
 Helps to split pdf into seperate pdf files
 </td>
 </tr>
 
 <tr>
-<td> <code>
+<td> <pre>
 core-utils
-</code> </td>
+</pre> </td>
 <td>
 <code>mv</code>, <code>cp</code>, <code>readlink</code>,
 <code>mkdir</code>, <code>rm</code>, <code>find</code>,
