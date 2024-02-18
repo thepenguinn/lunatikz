@@ -1736,7 +1736,10 @@ local function lunatikz_build(data)
 
     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
 
-    clean_standalone_files(lconfig, root_dir, cur_dir)
+    if #arg_config.pics_list > 0
+        or next(pics_list, nil) then
+        clean_standalone_files(lconfig, root_dir, cur_dir)
+    end
 
 end
 
