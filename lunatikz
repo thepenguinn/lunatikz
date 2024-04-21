@@ -502,6 +502,13 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
             tb_log("log", "file modified: " .. key)
         end
 
+        -- each of these parent_node will have the key as
+        -- one of their child_nodes, but we don't need to
+        -- erase those since we won't ever be climbing down
+        -- from a parent node to its child_nodes.
+        -- So only erasing the the parent_nodes table
+        dep_cache[key]["parent_nodes"] = nil
+
         need_to_build = true
 
         file_source = read_file(
