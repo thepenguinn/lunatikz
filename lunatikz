@@ -507,7 +507,12 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
         -- erase those since we won't ever be climbing down
         -- from a parent node to its child_nodes.
         -- So only erasing the the parent_nodes table
-        dep_cache[key]["parent_nodes"] = nil
+
+        -- TODO: Something is wrong here fix it
+        --
+        if dep_cache[key] then
+            dep_cache[key]["parent_nodes"] = nil
+        end
 
         need_to_build = true
 
