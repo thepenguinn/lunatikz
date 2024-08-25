@@ -1882,6 +1882,15 @@ local function lunatikz(args)
     data.cur_dir = tmp_fd:read("a"):gsub("\n", "")
     tmp_fd:close()
 
+    -- For termux (Android)
+    -- if we are in the internal storage, we need the /storage/emulatec/0/*
+    -- path
+    tmp_fd = io.popen(
+        "readlink -e \"" .. data.cur_dir .. "\""
+    )
+    assert(tmp_fd)
+    data.cur_dir = tmp_fd:read("a"):gsub("\n", "")
+    tmp_fd:close()
 
     data.args_iter = loop_tbl(args)
     local fstarg = data.args_iter()
