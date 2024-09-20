@@ -85,7 +85,7 @@ local function write_config(path, config)
     -- TODO: this will fail if a table has both numbers and strings
     -- as their index, fix that.
     local function pairs_ordered(tbl)
-        idx_tbl = {}
+        local idx_tbl = {}
 
         for key, _ in pairs(tbl) do
             idx_tbl[#idx_tbl + 1] = key
@@ -93,7 +93,7 @@ local function write_config(path, config)
 
         table.sort(idx_tbl)
 
-        idx = 0
+        local idx = 0
         return function ()
             idx = idx + 1
             return idx_tbl[idx], tbl[idx_tbl[idx]]
