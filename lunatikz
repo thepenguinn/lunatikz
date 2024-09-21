@@ -824,6 +824,10 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
 
     for key in pairs(pics_list) do
 
+        -- TODO: I think it's almost impossible to add the the \subfix
+        -- for sub pics because the way circuitikz implements them.
+        -- So need to find a way to do this. For now \subfix will work for
+        -- end pics.
         add_files(fd, dep_cache[key].parent_nodes)
 
         file_order[#file_order + 1] = key
@@ -832,8 +836,22 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
     end
 
     fd:write("\\begin{document}\n\n")
+    local rel_epic_parent
 
     for _, key in ipairs(file_order) do
+
+        -- we need to add \renewcommand\subfix[1]{new_dir} before every end pic.
+        -- the new_dir will be different depending on the end pic and the cur_dir.
+
+        rel_epic_parent = dep_list[key].parent_dir:gsub("^" .. cur_dir .. "/", "")
+        rel_epic_parent = rel_epic_parent:gsub("/-[^/]*$", "")
+
+        if rel_epic_parent ~= "" then
+            rel_epic_parent =  rel_epic_parent .. "/"
+        end
+
+        fd:write("\\renewcommand\\subfix[1]{" .. rel_epic_parent .. "#1}\n\n")
+
         file_source = read_file(
             dep_list[key].parent_dir
             .. "/"
