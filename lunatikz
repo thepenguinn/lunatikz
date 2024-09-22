@@ -8,6 +8,20 @@ local function tb_log(lvl, msg)
     end
 end
 
+-- Param: file_path, absolute or relative path
+local function check_file(file_path)
+    local fd
+
+    fd = io.open(file_path, "r")
+
+    if fd then
+        fd:close()
+        return true
+    else
+        return false
+    end
+
+end
 
 local function read_file(file)
 
@@ -466,7 +480,10 @@ local function get_dep_list_from_dir(root_dir, pics_directory, dep_list)
 
 end
 
-local function build_dep_for_file(key, style, dep_list, dep_cache)
+local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_cache)
+
+    assert(type(root_dir) == "string")
+    assert(type(cur_dir) == "string")
 
     assert(type(key) == "string")
     assert(type(style) == "string")
@@ -485,13 +502,163 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
     local new_parent_nodes = {}
 
     if dep_list[key].dep_added then
-        if dep_list[key].from_child
-            and dep_cache[key][style .. "_build_child_nodes"]
-            and dep_cache[key][style .. "_build_child_nodes"][
-            dep_list[key].from_child
-            ] then
-            return dep_list[key].need_to_build
+
+        -- TODO: this check seems redundant, because if dep_list[key].dep_added
+        -- then this must a from_child call.
+        if dep_list[key].from_child then
+
+            if not dep_cache[key]["build_subfix_files"] then
+                dep_cache[key]["build_subfix_files"] = {}
+            end
+
+            if not dep_cache[key]["build_subfix_files"][style] then
+                dep_cache[key]["build_subfix_files"] = {
+                    [style] = {
+                        [dep_list[key].from_child] = true
+                    }
+                }
+            end
+
         end
+        return dep_list[key].need_to_build
+    end
+
+    local function build_subfix_files(file_source)
+
+        local subfix_files = {}
+        local lmodt
+        local hash
+        local tmp_fd
+        local subfix_path
+        -- strips the last directory from the parent_dir
+        -- this will be absolute path
+        local parent_dir = dep_list[key].parent_dir:gsub("/-[^/]*$", "")
+
+        for subfix_file in file_source:gmatch(
+            "\\subfix[ \n\t]*{[ \n\t]*(.-)[ \n\t]*}"
+        ) do
+
+            -- getting subfix_path
+            subfix_path = parent_dir .. "/" .. subfix_file
+
+            tmp_fd = io.popen(
+                "readlink -e \"" .. subfix_path .. "\""
+            )
+            assert(tmp_fd, "build_subfix_files: 'readlink' failed.")
+            subfix_path = tmp_fd:read("a")
+                :gsub("\n", "")
+                :gsub("^" .. root_dir .. "/", "")
+
+            tmp_fd:close()
+
+            -- checking for file's existence
+            if not check_file(
+                root_dir .. "/" .. subfix_path
+            ) then
+                tb_log(
+                    "warn",
+                    "File seems like doesn't exists: \""
+                    .. root_dir .. "/" .. subfix_path .. "\""
+                )
+                goto continue
+            end
+
+            -- getting lmodt
+            tmp_fd = io.popen(
+                "stat --printf \"%Y\" \""
+                .. root_dir .. "/" .. subfix_path .. "\""
+            )
+            assert(tmp_fd, "build_subfix_files: 'stat' failed.")
+            lmodt = tonumber(tmp_fd:read("a"))
+            tmp_fd:close()
+
+            -- getting hash
+            tmp_fd = io.popen(
+                "sha256sum \""
+                .. root_dir .. "/" .. subfix_path .. "\""
+            )
+            assert(tmp_fd, "build_subfix_files: 'sha256sum' failed.")
+            hash = tmp_fd:read("a")
+            hash = hash:match("^[^ ]*")
+            tmp_fd:close()
+
+            subfix_files[#subfix_files + 1] = {
+                ["path"] = subfix_path,
+                ["lmodt"] = lmodt,
+                ["hash"] = hash,
+            }
+
+            ::continue::
+        end
+
+        if #subfix_files == 0 then
+            return nil
+        else
+            return subfix_files
+        end
+
+    end
+
+    local function check_subfix_files(subfix_files)
+
+        local subfix_need_to_build = false
+        local lmodt
+        local hash
+        local tmp_fd
+
+        for _, file in ipairs(subfix_files) do
+
+            if not check_file(
+                root_dir .. "/" .. file["path"]
+            ) then
+                tb_log(
+                    "warn",
+                    "File seems like doesn't exists: \""
+                    .. root_dir .. "/" .. file["path"] .. "\""
+                )
+                goto continue
+            end
+
+            tmp_fd = io.popen(
+                "stat --printf \"%Y\" \""
+                .. root_dir .. "/" .. file["path"] .. "\""
+            )
+            assert(tmp_fd, "check_subfix_files: 'stat' failed.")
+            lmodt = tonumber(tmp_fd:read("a"))
+            tmp_fd:close()
+
+            if file["lmodt"] < lmodt then
+
+                tb_log("log", "subfix_file modified: " .. file["path"])
+
+                -- check the hash here
+                tmp_fd = io.popen(
+                    "sha256sum \""
+                    .. root_dir .. "/" .. file["path"] .. "\""
+                )
+                assert(tmp_fd, "check_subfix_files: 'sha256sum' failed.")
+                hash = tmp_fd:read("a")
+                hash = hash:match("^[^ ]*")
+                tmp_fd:close()
+
+                file["lmodt"] = lmodt
+
+                if file["hash"] ~= hash then
+                    tb_log("log", "subfix_file hash changed: " .. file["path"])
+                    file["hash"] = hash
+                    subfix_need_to_build = true
+                else
+                    tb_log("log", "subfix_file hash not changed: " .. file["path"])
+                end
+
+            end
+
+            ::continue::
+
+        end
+
+        return subfix_need_to_build
+
     end
 
     local function erase_build_child_nodes(child_nodes)
@@ -502,9 +669,9 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
 
         for child in pairs(child_nodes) do
 
-            erase_build_child_nodes(dep_cache[child][style .. "_build_child_nodes"])
+            erase_build_child_nodes(dep_cache[child]["child_nodes"])
 
-            dep_cache[child][style .. "_build_child_nodes"] = nil
+            dep_cache[child]["build_child_nodes"] = nil
         end
 
     end
@@ -531,6 +698,8 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
         --
         if dep_cache[key] then
             dep_cache[key]["parent_nodes"] = nil
+            -- for subfix
+            dep_cache[key]["subfix_files"] = nil
         end
 
         need_to_build = true
@@ -553,7 +722,7 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
                 dep_list[macro].from_child = key
-                build_dep_for_file(macro, style, dep_list, dep_cache)
+                build_dep_for_file(root_dir, cur_dir, macro, style, dep_list, dep_cache)
                 dep_list[macro].from_child = nil
 
                 dep_list[key].been_here = nil
@@ -568,15 +737,15 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
 
         end
 
-        if dep_cache[key] then
+        dep_cache[key] = dep_cache[key] or {}
+
+        dep_cache[key]["subfix_files"] = build_subfix_files(file_source)
+        dep_cache[key].lmodt = dep_list[key].lmodt
+
+        if dep_cache[key].parent_nodes then
             for parent in pairs(dep_cache[key].parent_nodes) do
                 dep_cache[parent].child_nodes[key] = nil
             end
-            dep_cache[key].lmodt = dep_list[key].lmodt
-        else
-            dep_cache[key] = {
-                lmodt = dep_list[key].lmodt
-            }
         end
 
         for _, parent in pairs(new_parent_nodes) do
@@ -594,73 +763,91 @@ local function build_dep_for_file(key, style, dep_list, dep_cache)
             dep_cache[parent].child_nodes[key] = true
         end
 
-        erase_build_child_nodes(dep_cache[key][style .. "_build_child_nodes"])
-        dep_cache[key][style .. "_build_child_nodes"] = nil
+        erase_build_child_nodes(dep_cache[key]["child_nodes"])
+        dep_cache[key]["build_child_nodes"] = nil
 
         if dep_list[key].from_child then
-            dep_cache[key][style .. "_build_child_nodes"] = {}
-            dep_cache[key][style .. "_build_child_nodes"][
-            dep_list[key].from_child
-            ] = true
+            dep_cache[key]["build_child_nodes"] = {
+                [style] = {
+                    [dep_list[key].from_child] = true
+                }
+            }
         end
-
-        dep_list[key].dep_added = true
-        dep_list[key].need_to_build = need_to_build
 
     else
 
         local parent_need_to_build = false
         local child_need_to_build = false
+        local subfix_need_to_build = false
 
-        if dep_list[key].from_child
-            and dep_cache[key][style .. "_build_child_nodes"]
-            and not dep_cache[key][style .. "_build_child_nodes"][
+        -- check if any of the subfix files have changed.
+        if dep_cache[key]["subfix_files"] then
+            if check_subfix_files(dep_cache[key]["subfix_files"]) then
+                subfix_need_to_build = true
+                -- we need to rebuild all the child_nodes of this nodes
+                -- so erasing all the build_child_nodes of the current style
+                erase_build_child_nodes(dep_cache[key][child_nodes])
+                dep_cache[key]["build_child_nodes"] = nil
+            end
+        end
+
+        if dep_list[key].from_child then
+
+            if not dep_cache[key]["build_child_nodes"] then
+                dep_cache[key]["build_child_nodes"] = {}
+            end
+
+            if not dep_cache[key]["build_child_nodes"][style][
             dep_list[key].from_child
             ] then
+                child_need_to_build = true
 
-            child_need_to_build = true
-
-            dep_cache[key][style .. "_build_child_nodes"][
-            dep_list[key].from_child
-            ] = true
-
+                dep_cache[key]["build_child_nodes"][style][
+                dep_list[key].from_child
+                ] = true
+            end
         end
 
-        if not dep_list[key].dep_added then
-            for parent in pairs(dep_cache[key].parent_nodes) do
-                dep_list[parent].from_child = key
-                parent_need_to_build = build_dep_for_file(
-                    parent, style, dep_list, dep_cache
-                )
-                dep_list[parent].from_child = nil
+        for parent in pairs(dep_cache[key].parent_nodes) do
+            -- TODO: this is kinda redundant, because this
+            -- will add ["build_child_nodes"] to every
+            -- node that is a parent, we just need to be added
+            -- to the parent just above the end pics.
+            dep_list[parent].from_child = key
+            parent_need_to_build = build_dep_for_file(
+                root_dir, cur_dir, parent, style, dep_list, dep_cache
+            )
+            dep_list[parent].from_child = nil
 
-                if parent_need_to_build then
-                    dep_cache[parent][style .. "_build_child_nodes"] =
-                    dep_cache[parent][style .. "_build_child_nodes"] or {}
+            if parent_need_to_build then
 
-                    dep_cache[parent][style .. "_build_child_nodes"][key] = true
-
-                    need_to_build = parent_need_to_build
+                if not dep_cache[parent]["build_child_nodes"] then
+                    dep_cache[parennt]["build_child_nodes"] = {}
                 end
 
-            end
-            if need_to_build then
-                dep_list[key].dep_added = true
-                dep_list[key].need_to_build = need_to_build
+                dep_cache[parent]["build_child_nodes"][style] =
+                dep_cache[parent]["build_child_nodes"][style] or {}
+
+                dep_cache[parent]["build_child_nodes"][style][key] = true
+
+                need_to_build = parent_need_to_build
             end
 
         end
 
-        need_to_build = need_to_build or child_need_to_build
+        need_to_build = need_to_build or child_need_to_build or subfix_need_to_build
 
     end
+
+    dep_list[key].dep_added = true
+    dep_list[key].need_to_build = need_to_build
 
     return need_to_build
 
 end
 
 ---@Param: pics_list
-local function build_dep_tree(root_dir, style, pics_list, dep_list)
+local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list)
 
     assert(type(root_dir) == "string")
     assert(type(style) == "string")
@@ -701,7 +888,7 @@ local function build_dep_tree(root_dir, style, pics_list, dep_list)
             need_to_build = true
         end
 
-        if build_dep_for_file(key, style, dep_list, dep_cache) then
+        if build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_cache) then
             need_to_build = true
             tb_log("log", "Need to build: " .. key)
         end
@@ -869,21 +1056,6 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
     fd:close()
 
     return file_order
-
-end
-
--- Param: file_path, absolute or relative path
-local function check_file(file_path)
-    local fd
-
-    fd = io.open(file_path, "r")
-
-    if fd then
-        fd:close()
-        return true
-    else
-        return false
-    end
 
 end
 
@@ -1718,7 +1890,7 @@ local function lunatikz_build(data)
     end
 
     -- building dep_cache
-    dep_cache = build_dep_tree(root_dir, lconfig.style, pics_list, dep_list)
+    dep_cache = build_dep_tree(root_dir, cur_dir, lconfig.style, pics_list, dep_list)
 
     if #arg_config.file_list == 0
         and #arg_config.pics_list > 0 then
