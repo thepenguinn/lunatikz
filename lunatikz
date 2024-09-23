@@ -507,17 +507,19 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
         -- then this must a from_child call.
         if dep_list[key].from_child then
 
-            if not dep_cache[key]["build_subfix_files"] then
-                dep_cache[key]["build_subfix_files"] = {}
+            if not dep_cache[key]["build_child_nodes"] then
+                dep_cache[key]["build_child_nodes"] = {}
             end
 
-            if not dep_cache[key]["build_subfix_files"][style] then
-                dep_cache[key]["build_subfix_files"] = {
-                    [style] = {
-                        [dep_list[key].from_child] = true
-                    }
+            if not dep_cache[key]["build_child_nodes"][style] then
+                dep_cache[key]["build_child_nodes"] = {
+                    [style] = {}
                 }
             end
+
+            dep_cache[key]["build_child_nodes"][style][
+            dep_list[key].from_child
+            ] = true
 
         end
         return dep_list[key].need_to_build
@@ -795,6 +797,10 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
 
             if not dep_cache[key]["build_child_nodes"] then
                 dep_cache[key]["build_child_nodes"] = {}
+            end
+
+            if not dep_cache[key]["build_child_nodes"][style] then
+                dep_cache[key]["build_child_nodes"][style] = {}
             end
 
             if not dep_cache[key]["build_child_nodes"][style][
@@ -1962,8 +1968,17 @@ local function lunatikz_build(data)
 
         gen_disc_standalone_sub(root_dir, lconfig, arg_config.pics_list, dep_list)
 
+        if arg_config.dry_run then
+            return
+        end
+
         build_disc_pics(lconfig, arg_config.pics_list, arg_config.output_dir)
 
+    end
+
+    -- TODO: maybe restructure this a bit.
+    if arg_config.dry_run then
+        return
     end
 
     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
