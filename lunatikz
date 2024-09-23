@@ -209,8 +209,9 @@ local function get_pics_list(root_dir, file_list, pics_list)
             -- stripping comments
             -- this works, kind of...
             local file_source = file_fd:read("a")
-            :gsub("(\\\\)%%[^\n]-\n", "%1\n")
-            :gsub("([^\\])%%[^\n]*", "%1")
+                :gsub("(\\\\)%%[^\n]-\n", "%1\n")
+                :gsub("([^\\])%%[^\n]*", "%1")
+                :gsub("^%%[^\n]*", "")
 
             local is_abs_path
             local parent_dir
@@ -1823,7 +1824,13 @@ local function set_style(root_dir, lconfig)
         "set_style: couldn't open style.file"
     )
 
+    -- stripping comments
+    -- this works, kind of...
+    style_source = style_source:gsub("(\\\\)%%[^\n]-\n", "%1\n")
+        :gsub("([^\\])%%[^\n]*", "%1")
+        :gsub("^%%[^\n]*", "")
 
+    -- returns the first match
     local style = style_source:match(
         "\\" .. lconfig["style.macro"] .. "[ \n\t]*{(.-)}"
     )
