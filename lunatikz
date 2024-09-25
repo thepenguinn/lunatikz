@@ -92,6 +92,21 @@ local function read_dep_cache(root_dir)
 
 end
 
+local function read_subfix_cache(root_dir)
+
+    local subfix_file = io.open(root_dir .. "/.lunatikz/subfix_cache", "r")
+    local subfix_cache = nil
+
+    if subfix_file then
+        subfix_file:close()
+        subfix_cache = dofile(root_dir .. "/.lunatikz/subfix_cache")
+    end
+
+    subfix_cache = subfix_cache or {}
+
+    return subfix_cache
+
+end
 
 --  absolute path
 local function write_config(path, config)
@@ -481,7 +496,9 @@ local function get_dep_list_from_dir(root_dir, pics_directory, dep_list)
 
 end
 
-local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_cache)
+local function build_dep_for_file(
+    root_dir, cur_dir, key, style, dep_list, dep_cache, subfix_cache, updated_subfix_files
+)
 
     assert(type(root_dir) == "string")
     assert(type(cur_dir) == "string")
@@ -526,33 +543,35 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
         return dep_list[key].need_to_build
     end
 
-    local function build_subfix_files(file_source)
+    -- returns a boolean indicating whether to rebuild or not
+    -- and the subfix_files itself, if its not empy.
+    local function build_subfix_files(
+        subfix_iter, subfix_files, subfix_cache, updated_subfix_files
+    )
 
-        local subfix_files = {}
+        local subfix_need_to_build = false
         local lmodt
         local hash
         local tmp_fd
-        local subfix_path
-        -- strips the last directory from the parent_dir
-        -- this will be absolute path
-        local parent_dir = dep_list[key].parent_dir:gsub("/-[^/]*$", "")
 
-        for subfix_file in file_source:gmatch(
-            "\\subfix[ \n\t]*{[ \n\t]*(.-)[ \n\t]*}"
-        ) do
+        subfix_files = subfix_files or {}
 
-            -- getting subfix_path
-            subfix_path = parent_dir .. "/" .. subfix_file
+        if not subfix_iter then
+            tb_log("warn", "nil iter for key")
+            return subfix_need_to_build, nil
+        end
 
-            tmp_fd = io.popen(
-                "readlink -e \"" .. subfix_path .. "\""
-            )
-            assert(tmp_fd, "build_subfix_files: 'readlink' failed.")
-            subfix_path = tmp_fd:read("a")
-                :gsub("\n", "")
-                :gsub("^" .. root_dir .. "/", "")
+        for subfix_path in subfix_iter do
 
-            tmp_fd:close()
+            if updated_subfix_files[subfix_path] then
+                tb_log("log", "already updated: " .. subfix_path)
+                subfix_files[subfix_path] = true
+                if updated_subfix_files[subfix_path] == "mod" then
+                    subfix_cache[subfix_path]["build_child_nodes"][style][key] = true
+                    subfix_need_to_build = true
+                end
+                goto continue
+            end
 
             -- checking for file's existence
             if not check_file(
@@ -575,6 +594,39 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
             lmodt = tonumber(tmp_fd:read("a"))
             tmp_fd:close()
 
+            -- if any of these is not present in the subfix_cache then
+            -- we need to build.
+            if not subfix_cache[subfix_path] then
+                subfix_cache[subfix_path] = {}
+                subfix_need_to_build = true
+            end
+            if not subfix_cache[subfix_path]["build_child_nodes"] then
+                subfix_cache[subfix_path]["build_child_nodes"] = {}
+                subfix_need_to_build = true
+            end
+            if not subfix_cache[subfix_path]["build_child_nodes"][style] then
+                subfix_cache[subfix_path]["build_child_nodes"][style] = {}
+                subfix_need_to_build = true
+            end
+            if not subfix_cache[subfix_path]["build_child_nodes"][style][key] then
+                subfix_cache[subfix_path]["build_child_nodes"][style][key] = true
+                subfix_need_to_build = true
+            end
+
+            if subfix_cache[subfix_path]["lmodt"] then
+                if subfix_cache[subfix_path]["lmodt"] >= lmodt then
+                    tb_log("log", "not modified: " .. subfix_path)
+                    updated_subfix_files[subfix_path] = "nomod"
+                    subfix_files[subfix_path] = true
+                    goto continue
+                else
+                    tb_log("log", "subfix_file modified: " .. subfix_path)
+                end
+            else
+                subfix_cache[subfix_path]["lmodt"] = 0
+                subfix_cache[subfix_path]["hash"] = ""
+            end
+
             -- getting hash
             tmp_fd = io.popen(
                 "sha256sum \""
@@ -585,82 +637,92 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
             hash = hash:match("^[^ ]*")
             tmp_fd:close()
 
-            subfix_files[#subfix_files + 1] = {
-                ["path"] = subfix_path,
-                ["lmodt"] = lmodt,
-                ["hash"] = hash,
-            }
+            if subfix_cache[subfix_path]["hash"] == hash then
+                tb_log("log", "subfix_file hash not changed: " .. subfix_path)
+                subfix_cache[subfix_path]["lmodt"] = lmodt
+                updated_subfix_files[subfix_path] = "nomod"
+                subfix_files[subfix_path] = true
+                goto continue
+            else
+                tb_log("log", "subfix_file hash changed: " .. subfix_path)
+            end
+
+            -- if we are here it means that the subfix file has modified and
+            -- need to rebuild its every child node
+            -- purge the build_child_nodes of subfix file then rebuild it back
+            subfix_cache[subfix_path]["lmodt"] = lmodt
+            subfix_cache[subfix_path]["hash"] = hash
+            -- the build_child_nodes will be filled from above.
+
+            subfix_files[subfix_path] = true
+            subfix_need_to_build = true
+
+            updated_subfix_files[subfix_path] = "mod"
 
             ::continue::
         end
 
-        if #subfix_files == 0 then
-            return nil
-        else
-            return subfix_files
+        if not next(subfix_files, nil) then
+            subfix_files = nil
         end
+
+        return subfix_need_to_build, subfix_files
 
     end
 
-    local function check_subfix_files(subfix_files)
+    local function subfix_from_file_iter(root_dir, file_source, key_parent_dir)
 
-        local subfix_need_to_build = false
-        local lmodt
-        local hash
         local tmp_fd
+        local _iter = file_source:gmatch(
+            "\\subfix[ \n\t]*{[ \n\t]*(.-)[ \n\t]*}"
+        )
 
-        for _, file in ipairs(subfix_files) do
+        -- strips the last directory from the parent_dir
+        -- this will be absolute path
+        local parent_dir = key_parent_dir:gsub("/-[^/]*$", "")
 
-            if not check_file(
-                root_dir .. "/" .. file["path"]
-            ) then
-                tb_log(
-                    "warn",
-                    "File seems like doesn't exists: \""
-                    .. root_dir .. "/" .. file["path"] .. "\""
-                )
-                goto continue
+        -- this will return the subfix_path as the relative
+        -- path from the root directory of the project.
+        local function iter()
+
+            local subfix_path = _iter()
+
+            if not subfix_path then
+                return nil
             end
+
+            subfix_path = parent_dir .. "/" .. subfix_path
 
             tmp_fd = io.popen(
-                "stat --printf \"%Y\" \""
-                .. root_dir .. "/" .. file["path"] .. "\""
+                "readlink -e \"" .. subfix_path .. "\""
             )
-            assert(tmp_fd, "check_subfix_files: 'stat' failed.")
-            lmodt = tonumber(tmp_fd:read("a"))
+            assert(tmp_fd, "subfix_from_file_iter: 'readlink' failed.")
+            subfix_path = tmp_fd:read("a")
+                :gsub("\n", "")
+                :gsub("^" .. root_dir .. "/", "")
+
             tmp_fd:close()
 
-            if file["lmodt"] < lmodt then
-
-                tb_log("log", "subfix_file modified: " .. file["path"])
-
-                -- check the hash here
-                tmp_fd = io.popen(
-                    "sha256sum \""
-                    .. root_dir .. "/" .. file["path"] .. "\""
-                )
-                assert(tmp_fd, "check_subfix_files: 'sha256sum' failed.")
-                hash = tmp_fd:read("a")
-                hash = hash:match("^[^ ]*")
-                tmp_fd:close()
-
-                file["lmodt"] = lmodt
-
-                if file["hash"] ~= hash then
-                    tb_log("log", "subfix_file hash changed: " .. file["path"])
-                    file["hash"] = hash
-                    subfix_need_to_build = true
-                else
-                    tb_log("log", "subfix_file hash not changed: " .. file["path"])
-                end
-
-            end
-
-            ::continue::
+            return subfix_path
 
         end
 
-        return subfix_need_to_build
+        return iter
+
+    end
+
+    local function subfix_from_table_iter(subfix_files)
+
+        local prev_idx = nil
+
+        local function iter()
+
+            prev_idx = next(subfix_files, prev_idx)
+            return prev_idx
+
+        end
+
+        return iter
 
     end
 
@@ -725,7 +787,7 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
                 dep_list[macro].from_child = key
-                build_dep_for_file(root_dir, cur_dir, macro, style, dep_list, dep_cache)
+                build_dep_for_file(root_dir, cur_dir, macro, style, dep_list, dep_cache, subfix_cache)
                 dep_list[macro].from_child = nil
 
                 dep_list[key].been_here = nil
@@ -742,7 +804,10 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
 
         dep_cache[key] = dep_cache[key] or {}
 
-        dep_cache[key]["subfix_files"] = build_subfix_files(file_source)
+        _, dep_cache[key]["subfix_files"] = build_subfix_files(
+            subfix_from_file_iter(root_dir, file_source, dep_list[key].parent_dir),
+            nil, subfix_cache, updated_subfix_files
+        )
         dep_cache[key].lmodt = dep_list[key].lmodt
 
         if dep_cache[key].parent_nodes then
@@ -783,12 +848,19 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
         local child_need_to_build = false
         local subfix_need_to_build = false
 
+        local subfix_files = nil
+
         -- check if any of the subfix files have changed.
         if dep_cache[key]["subfix_files"] then
-            if check_subfix_files(dep_cache[key]["subfix_files"]) then
-                subfix_need_to_build = true
+
+            subfix_need_to_build, subfix_files = build_subfix_files(
+                subfix_from_table_iter(dep_cache[key]["subfix_files"]),
+                nil, subfix_cache, updated_subfix_files -- TODO
+            )
+
+            if subfix_need_to_build then
                 -- we need to rebuild all the child_nodes of this nodes
-                -- so erasing all the build_child_nodes of the current style
+                -- so erasing all the build_child_nodes.
                 erase_build_child_nodes(dep_cache[key][child_nodes])
                 dep_cache[key]["build_child_nodes"] = nil
             end
@@ -822,7 +894,7 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
             -- to the parent just above the end pics.
             dep_list[parent].from_child = key
             parent_need_to_build = build_dep_for_file(
-                root_dir, cur_dir, parent, style, dep_list, dep_cache
+                root_dir, cur_dir, parent, style, dep_list, dep_cache, subfix_cache
             )
             dep_list[parent].from_child = nil
 
@@ -854,7 +926,7 @@ local function build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_c
 end
 
 ---@Param: pics_list
-local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list)
+local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list, subfix_cache)
 
     assert(type(root_dir) == "string")
     assert(type(style) == "string")
@@ -862,6 +934,9 @@ local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list)
     assert(type(dep_list) == "table")
 
     local dep_cache = read_dep_cache(root_dir)
+    local subfix_cache = read_subfix_cache(root_dir)
+
+    local updated_subfix_files = {}
 
     local pdf_fd
     local need_to_build = false
@@ -895,7 +970,9 @@ local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list)
             need_to_build = true
         end
 
-        if build_dep_for_file(root_dir, cur_dir, key, style, dep_list, dep_cache) then
+        if build_dep_for_file(
+            root_dir, cur_dir, key, style, dep_list, dep_cache, subfix_cache, updated_subfix_files
+        ) then
             need_to_build = true
             tb_log("log", "Need to build: " .. key)
         end
@@ -929,7 +1006,7 @@ local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list)
         ::continue::
     end
 
-    return dep_cache
+    return dep_cache, subfix_cache
 
 end
 
@@ -1864,6 +1941,8 @@ local function lunatikz_build(data)
     local main_file
     local file_order
 
+    local subfix_cache
+
     local in_pics_directory = data.cur_dir
         :match(lconfig["pics.directory"] .. "$")
 
@@ -1903,7 +1982,11 @@ local function lunatikz_build(data)
     end
 
     -- building dep_cache
-    dep_cache = build_dep_tree(root_dir, cur_dir, lconfig.style, pics_list, dep_list)
+    dep_cache, subfix_cache = build_dep_tree(root_dir, cur_dir, lconfig.style, pics_list, dep_list)
+
+    -- write_config("/dev/stdout", subfix_cache)
+    --
+    -- write_config("/dev/stdout", dep_cache)
 
     if #arg_config.file_list == 0
         and #arg_config.pics_list > 0 then
@@ -1989,6 +2072,8 @@ local function lunatikz_build(data)
     end
 
     write_config(data.root_dir .. "/.lunatikz/dep_cache", dep_cache)
+
+    write_config(data.root_dir .. "/.lunatikz/subfix_cache", subfix_cache)
 
     if #arg_config.pics_list > 0
         or next(pics_list, nil) then
