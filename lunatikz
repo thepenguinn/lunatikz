@@ -546,7 +546,7 @@ local function build_dep_for_file(
     -- returns a boolean indicating whether to rebuild or not
     -- and the subfix_files itself, if its not empy.
     local function build_subfix_files(
-        subfix_iter, subfix_files, subfix_cache, updated_subfix_files
+        subfix_iter, subfix_cache, updated_subfix_files
     )
 
         local subfix_need_to_build = false
@@ -554,7 +554,7 @@ local function build_dep_for_file(
         local hash
         local tmp_fd
 
-        subfix_files = subfix_files or {}
+        local subfix_files = {}
 
         if not subfix_iter then
             tb_log("warn", "nil iter for key")
@@ -811,7 +811,7 @@ local function build_dep_for_file(
 
         _, dep_cache[key]["subfix_files"] = build_subfix_files(
             subfix_from_file_iter(root_dir, file_source, dep_list[key].parent_dir),
-            nil, subfix_cache, updated_subfix_files
+            subfix_cache, updated_subfix_files
         )
         dep_cache[key].lmodt = dep_list[key].lmodt
 
@@ -860,7 +860,7 @@ local function build_dep_for_file(
 
             subfix_need_to_build, subfix_files = build_subfix_files(
                 subfix_from_table_iter(dep_cache[key]["subfix_files"]),
-                nil, subfix_cache, updated_subfix_files -- TODO
+                subfix_cache, updated_subfix_files
             )
 
             if subfix_need_to_build then
