@@ -566,7 +566,8 @@ local function build_dep_for_file(
             if updated_subfix_files[subfix_path] then
                 tb_log("log", "already updated: " .. subfix_path)
                 subfix_files[subfix_path] = true
-                if updated_subfix_files[subfix_path] == "mod" then
+                if updated_subfix_files[subfix_path] == "mod"
+                    or not subfix_cache[subfix_path]["build_child_nodes"][style][key] then
                     subfix_cache[subfix_path]["build_child_nodes"][style][key] = true
                     subfix_need_to_build = true
                 end
@@ -594,8 +595,7 @@ local function build_dep_for_file(
             lmodt = tonumber(tmp_fd:read("a"))
             tmp_fd:close()
 
-            -- if any of these is not present in the subfix_cache then
-            -- we need to build.
+            -- if any of these are not present in the subfix_cache then we need to build.
             if not subfix_cache[subfix_path] then
                 subfix_cache[subfix_path] = {}
                 subfix_need_to_build = true
@@ -650,6 +650,11 @@ local function build_dep_for_file(
             -- if we are here it means that the subfix file has modified and
             -- need to rebuild its every child node
             -- purge the build_child_nodes of subfix file then rebuild it back
+            subfix_cache[subfix_path]["build_child_nodes"] = {
+                [style] = {
+                    [key] = true,
+                },
+            }
             subfix_cache[subfix_path]["lmodt"] = lmodt
             subfix_cache[subfix_path]["hash"] = hash
             -- the build_child_nodes will be filled from above.
@@ -866,15 +871,17 @@ local function build_dep_for_file(
             end
         end
 
+        if not dep_cache[key]["build_child_nodes"] then
+            dep_cache[key]["build_child_nodes"] = {}
+            need_to_build = true
+        end
+
+        if not dep_cache[key]["build_child_nodes"][style] then
+            dep_cache[key]["build_child_nodes"][style] = {}
+            need_to_build = true
+        end
+
         if dep_list[key].from_child then
-
-            if not dep_cache[key]["build_child_nodes"] then
-                dep_cache[key]["build_child_nodes"] = {}
-            end
-
-            if not dep_cache[key]["build_child_nodes"][style] then
-                dep_cache[key]["build_child_nodes"][style] = {}
-            end
 
             if not dep_cache[key]["build_child_nodes"][style][
             dep_list[key].from_child
@@ -890,7 +897,7 @@ local function build_dep_for_file(
         for parent in pairs(dep_cache[key].parent_nodes) do
             -- TODO: this is kinda redundant, because this
             -- will add ["build_child_nodes"] to every
-            -- node that is a parent, we just need to be added
+            -- node that is a parent, we just need to add it
             -- to the parent just above the end pics.
             dep_list[parent].from_child = key
             parent_need_to_build = build_dep_for_file(
