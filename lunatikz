@@ -539,6 +539,12 @@ local function build_dep_for_file(
             dep_list[key].from_child
             ] = true
 
+        elseif dep_list[key].is_end_pic then
+            if not dep_cache[key]["build_styles"] then
+                dep_cache[key]["build_styles"] = {}
+            end
+
+            dep_cache[key]["build_styles"][style] = true
         end
         return dep_list[key].need_to_build
     end
@@ -845,6 +851,10 @@ local function build_dep_for_file(
                     [dep_list[key].from_child] = true
                 }
             }
+        elseif dep_list[key].is_end_pic then
+            dep_cache[key]["build_styles"] = {
+                [style] = true
+            }
         end
 
     else
@@ -871,17 +881,17 @@ local function build_dep_for_file(
             end
         end
 
-        if not dep_cache[key]["build_child_nodes"] then
-            dep_cache[key]["build_child_nodes"] = {}
-            need_to_build = true
-        end
-
-        if not dep_cache[key]["build_child_nodes"][style] then
-            dep_cache[key]["build_child_nodes"][style] = {}
-            need_to_build = true
-        end
-
         if dep_list[key].from_child then
+
+            if not dep_cache[key]["build_child_nodes"] then
+                dep_cache[key]["build_child_nodes"] = {}
+                child_need_to_build = true
+            end
+
+            if not dep_cache[key]["build_child_nodes"][style] then
+                dep_cache[key]["build_child_nodes"][style] = {}
+                child_need_to_build = true
+            end
 
             if not dep_cache[key]["build_child_nodes"][style][
             dep_list[key].from_child
@@ -891,6 +901,16 @@ local function build_dep_for_file(
                 dep_cache[key]["build_child_nodes"][style][
                 dep_list[key].from_child
                 ] = true
+            end
+
+        elseif dep_list[key].is_end_pic then
+            if not dep_cache[key]["build_styles"] then
+                dep_cache[key]["build_styles"] = {}
+                need_to_build = true
+            end
+            if not dep_cache[key]["build_styles"][style] then
+                dep_cache[key]["build_styles"][style] = true
+                need_to_build = true
             end
         end
 
@@ -977,12 +997,14 @@ local function build_dep_tree(root_dir, cur_dir, style, pics_list, dep_list, sub
             need_to_build = true
         end
 
+        dep_list[key].is_end_pic = true
         if build_dep_for_file(
             root_dir, cur_dir, key, style, dep_list, dep_cache, subfix_cache, updated_subfix_files
         ) then
             need_to_build = true
             tb_log("log", "Need to build: " .. key)
         end
+        dep_list[key].is_end_pic = nil
 
         if need_to_build then
             need_to_build = false
