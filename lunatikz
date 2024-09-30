@@ -1,5 +1,7 @@
 #!/usr/bin/env lua
 
+local USE_SUBTIKZ = false
+
 local function tb_log(lvl, msg)
     if lvl == "warn" then
         print("WARN: " .. msg)
@@ -787,9 +789,22 @@ local function build_dep_for_file(
             .. ".tex"
         )
 
-        for macro in file_source:gmatch(
-            "\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}"
-        ) do
+        local macro_iter
+
+        if USE_SUBTIKZ then
+            -- we are using subtikzpicture
+            -- we are looking for \macro{name}{local_anchor}{subtikz_anchor}
+            -- TODO: use a parser or write a lexer, because regex is fragile.
+            -- the below commented regex does not properly detects the macros.
+            -- macro_iter = file_source:gmatch("\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}")
+            macro_iter = file_source:gmatch("\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}")
+        else
+            -- we are using circuitikz's subcircuits
+            -- we are looking for \macro{name}{ctikzsubcircuit_anchor}
+            macro_iter = file_source:gmatch("\\([%w%-_]+)[ \n\t]*{[^}]-}[ \n\t]*{[^}]-}")
+        end
+
+        for macro in macro_iter do
 
             if dep_list[macro] then
 
@@ -798,7 +813,7 @@ local function build_dep_for_file(
                 new_parent_nodes[#new_parent_nodes + 1] = macro
 
                 dep_list[macro].from_child = key
-                build_dep_for_file(root_dir, cur_dir, macro, style, dep_list, dep_cache, subfix_cache)
+                build_dep_for_file(root_dir, cur_dir, macro, style, dep_list, dep_cache, subfix_cache, updated_subfix_files)
                 dep_list[macro].from_child = nil
 
                 dep_list[key].been_here = nil
@@ -921,7 +936,7 @@ local function build_dep_for_file(
             -- to the parent just above the end pics.
             dep_list[parent].from_child = key
             parent_need_to_build = build_dep_for_file(
-                root_dir, cur_dir, parent, style, dep_list, dep_cache, subfix_cache
+                root_dir, cur_dir, parent, style, dep_list, dep_cache, subfix_cache, updated_subfix_files
             )
             dep_list[parent].from_child = nil
 
@@ -1075,6 +1090,7 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
     local function add_files(fd, pics_list)
 
         local file_source
+        local rel_spic_parent
 
         for key in pairs(pics_list) do
             if dep_list[key].file_added then
@@ -1089,8 +1105,29 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
                 .. ".tex"
             )
 
+            if USE_SUBTIKZ and dep_cache[key]["subfix_files"] then
+
+                rel_spic_parent = dep_list[key].parent_dir:gsub("^" .. cur_dir .. "/", "")
+                rel_spic_parent = rel_spic_parent:gsub("/-[^/]*$", "")
+
+                if rel_spic_parent ~= "" then
+                    rel_spic_parent =  rel_spic_parent .. "/"
+                end
+
+                -- \makeatletter \def\subtikz@subfix@prefix{rel_spic_parent} \makeatother
+                fd:write("\\makeatletter \\def\\subtikz@subfix@prefix{" .. rel_spic_parent .. "} \\makeatother\n\n")
+            end
+
             fd:write(file_source)
-            fd:write("\n\n")
+            fd:write("\n")
+
+            if USE_SUBTIKZ and dep_cache[key]["subfix_files"] then
+                -- clear the above defined \subtikz@subfix@prefix
+                -- \makeatletter \let\subtikz@subfix@prefix\relax \makeatother
+                fd:write("\\makeatletter \\let\\subtikz@subfix@prefix\\relax \\makeatother\n\n\n")
+            else
+                fd:write("\n")
+            end
 
             dep_list[key].file_added = true
 
@@ -1734,6 +1771,8 @@ local function parse_args_config(args_iter)
                 .. "from the root directory"
             )
             arg_config["style.fromroot"] = true
+        elseif val == "use.subtikz" then
+            arg_config["use.subtikz"] = true
         elseif val == "touch" then
             arg_config["touch"] = true
         elseif val == "touch.file" then
@@ -1994,6 +2033,11 @@ local function lunatikz_build(data)
         )
     end
 
+    if data.lconfig["use.subtikz"] then
+        -- TODO: find a better way to do this.
+        USE_SUBTIKZ = true
+    end
+
     set_style(root_dir, lconfig)
 
     fill_gdep_list(root_dir, dep_list)
@@ -2181,18 +2225,20 @@ local function lunatikz_config(data)
 
     -- TODO: implement a pretty_print() to print the config
     if #data.args == 1 then
-        print("----------------------------------")
-        for key, val in pairs(data.lconfig) do
-            print(key, "", "", val)
-        end
-        print("----------------------------------")
+        -- print("----------------------------------")
+        -- for key, val in pairs(data.lconfig) do
+        --     print(key, "", "", val)
+        -- end
+        -- print("----------------------------------")
+        write_config("/dev/stdout", data.lconfig)
         return
     elseif #data.args == 2 and arg_config.global then
-        print("----------------------------------")
-        for key, val in pairs(data.gconfig) do
-            print(key, "", "", val)
-        end
-        print("----------------------------------")
+        -- print("----------------------------------")
+        -- for key, val in pairs(data.gconfig) do
+        --     print(key, "", "", val)
+        -- end
+        -- print("----------------------------------")
+        write_config("/dev/stdout", data.gconfig)
         return
     end
 
@@ -2282,6 +2328,7 @@ local function lunatikz(args)
             ["style.fromroot"] = false,
             ["touch"] = false,
             ["touch.file"] = "need_to_build",
+            ["use.subtikz"] = false,
         }
     })
 
