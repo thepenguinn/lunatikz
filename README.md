@@ -174,7 +174,7 @@ Like above, while defining `tikzpics`, the file paths should be wrapped in
 `\subfix`, LunaTikZ and `subtikzpicture` will ensure these wrapped files are
 available while building the pics.
 
-Note: The `tikzpictures` as stored in a particular directory known as a
+Note: The `tikzpictures` are stored in a particular directory known as a
 `pics_directory` (more on this later), but the path to the `\subfix` should be
 the relative path from the parent directory of this `pics_directory`.
 
