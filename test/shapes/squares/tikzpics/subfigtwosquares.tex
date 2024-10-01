@@ -1,12 +1,13 @@
-\ctikzsubcircuitdef{subfigtwosquares} {
+\subtikzpicturedef{subfigtwosquares} {
     center%
 } {
-    \subfigonesquare {#1-square1} {center}
-    (#1-square1-center)
+    \subfigonesquare {#1-square1} {#1-start} {center}
+    \draw (#1-square1-center)
     ++(1.5,0)
     coordinate (#1-center)
-    ++(1.5,0)
-    \subfigonesquare {#1-square2} {center}
+    ++(1.5,0) coordinate (#1-tmp)
+    ;
+    \subfigonesquare {#1-square2} {#1-tmp} {center}
 }
 
-\ctikzsubcircuitactivate{subfigtwosquares}
+\subtikzpictureactivate{subfigtwosquares}

@@ -5,3 +5,4 @@ test_dir/
 *.aux
 *.log
 test/shapes/.lunatikz/dep_cache
+test/shapes/.lunatikz/subfix_cache

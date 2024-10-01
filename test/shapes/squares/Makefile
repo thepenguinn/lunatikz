@@ -7,6 +7,6 @@ chapter.pdf: chapter.tex $(PICS_TOUCH)
 	touch chapter.pdf
 
 build_pics:
-	lunatikz build chapter.tex
+	../../../lunatikz build chapter.tex
 
 .PHONY: build build_pics

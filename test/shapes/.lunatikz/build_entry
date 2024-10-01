@@ -1,7 +1,8 @@
 return {
     [""] = "main.tex",
-    ["circles"] = "chapter.tex",
-    ["triangles"] = "chapter.tex",
     ["allthree"] = "chapter.tex",
+    ["circles"] = "chapter.tex",
+    ["notashape"] = "chapter.tex",
     ["squares"] = "chapter.tex",
+    ["triangles"] = "chapter.tex",
 }

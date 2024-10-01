@@ -1,8 +1,10 @@
-\ctikzsubcircuitdef{subfigonecircle} {
+\subtikzpicturedef{subfigonecircle} {
     center%
 } {
+    \draw [blue!40!white, fill = blue!20!white] (#1-start)
     coordinate (#1-center)
     circle [radius = 1]
+    ;
 }
 
-\ctikzsubcircuitactivate{subfigonecircle}
+\subtikzpictureactivate{subfigonecircle}

@@ -1,0 +1,22 @@
+\begin{tikzpicture} []
+
+    \begin{axis} [
+            name = justaplot,
+            ycomb,
+            width = 4in,
+            height = 1.5in,
+        ]
+        \addplot [
+            catppuccinfg,
+            mark = *,
+            mark options = {fill = catppuccinbg},
+        ] table [
+            y = y,
+            x = t,
+        ] {\subfix{../data/someData.csv}};
+
+    \end{axis}
+
+    \node [below = 0.6cm] at (justaplot.south) {\texttt{subfixed relative path: ``\subfix{../data/someData.csv}''}};
+
+\end{tikzpicture}

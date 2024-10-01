@@ -1,12 +1,20 @@
-\ctikzsubcircuitdef{subfigallthree} {
+\subtikzpicturedef{subfigallthree} {
     center%
 } {
-    coordinate (#1-center)
-    \subfigonetriangle {#1-triangle} {center}
-    (#1-triangle-center) ++(3,0)
-    \subfigonesquare {#1-square} {center}
-    (#1-triangle-center) ++(-3,0)
-    \subfigonecircle {#1-circle} {center}
+    \draw (#1-start)
+    %% marking
+    coordinate (#1-topCorner)
+    ++(0,-2) coordinate (#1-tmp)
+    ++(-30:2) coordinate (#1-rightCorner)
+    (#1-tmp) ++(-150:2) coordinate (#1-leftCorner)
+    ;
+    \subfigonetriangle {#1-triangle} {#1-topCorner} {center}
+    \subfigonesquare {#1-square} {#1-rightCorner} {center}
+    \subfigonecircle {#1-circle} {#1-leftCorner} {center}
+    \draw
+    ($(#1-leftCorner)!0.50!(#1-rightCorner)$) coordinate (#1-botMid)
+    ($(#1-topCorner)!0.50!(#1-botMid)$) coordinate (#1-center)
+    ;
 }
 
-\ctikzsubcircuitactivate{subfigallthree}
+\subtikzpictureactivate{subfigallthree}

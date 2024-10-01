@@ -1,5 +1,6 @@
 return {
     ["style.file"] = "colorscheme.sty",
-    ["touch"] = true,
     ["style.macro"] = "usepackage",
+    ["touch"] = true,
+    ["use.subtikz"] = true,
 }

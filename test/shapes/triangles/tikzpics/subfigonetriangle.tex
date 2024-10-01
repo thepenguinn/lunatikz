@@ -1,24 +1,20 @@
-\ctikzsubcircuitdef{subfigonetriangle} {
+\subtikzpicturedef{subfigonetriangle} {
     center%
 } {
-    coordinate (#1-center)
-    ++(0,1)
-    coordinate (#1-top)
-    (#1-center)
-    ++(210:1)
-    coordinate (#1-left)
-    (#1-center)
-    ++(-30:1)
-    coordinate (#1-right)
-    %%
-    (#1-top)
-    -- (#1-left)
-    -- (#1-right)
-    -- (#1-top)
-    %%
-    (#1-left)
-    -- ++($(#1-top)-(#1-right)$)
-    -- (#1-right)
+    \draw (#1-start)
+    %% marking
+    coordinate (#1-topCorner)
+    ++(0,-1) coordinate (#1-tmp)
+    ++(-30:1) coordinate (#1-rightCorner)
+    (#1-tmp) ++(-150:1) coordinate (#1-leftCorner)
+    ;
+    \draw [green!40!white, fill = green!20!white]
+    (#1-topCorner) -- (#1-rightCorner) -- (#1-leftCorner) -- cycle
+    ;
+    \draw
+    ($(#1-leftCorner)!0.50!(#1-rightCorner)$) coordinate (#1-botMid)
+    ($(#1-topCorner)!0.50!(#1-botMid)$) coordinate (#1-center)
+    ;
 }
 
-\ctikzsubcircuitactivate{subfigonetriangle}
+\subtikzpictureactivate{subfigonetriangle}

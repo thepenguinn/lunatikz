@@ -1,12 +1,12 @@
-\ctikzsubcircuitdef{subfigtwotriangles} {
+\subtikzpicturedef{subfigtwotriangles} {
     center%
 } {
-    \subfigonetriangle {#1-triangle1} {center}
-    (#1-triangle1-center)
+    \subfigonetriangle {#1-triangle1} {#1-start} {center}
+    \draw (#1-triangle1-center)
     ++(1.5,0)
     coordinate (#1-center)
-    ++(1.5,0)
-    \subfigonetriangle {#1-triangle2} {center}
+    ++(1.5,0) coordinate (#1-tmp);
+    \subfigonetriangle {#1-triangle2} {#1-tmp} {center}
 }
 
-\ctikzsubcircuitactivate{subfigtwotriangles}
+\subtikzpictureactivate{subfigtwotriangles}
