@@ -19,16 +19,16 @@
         }%
     }%
     \expandafter\gdef\csname #1@subfix@begin\endcsname{%
-        \@ifundefined{subtikz@subfix@prefix}{}{%
+        \@ifundefined{subfix@attach@modified}{}{%
             \expandafter\let\csname #1@old@subfix\expandafter\endcsname\csname subfix\endcsname%
             \expandafter\let\csname subfix\expandafter\endcsname\csname #1@subfix@modified\endcsname%
         }%
     }%
-    \@ifundefined{subtikz@subfix@prefix}{}{%
+    \@ifundefined{subfix@attach@modified}{}{%
         \expandafter\xdef\csname #1@subfix@modified\endcsname##1{\subtikz@subfix@prefix ##1}%
     }%
     \expandafter\gdef\csname #1@subfix@end\endcsname{%
-        \@ifundefined{subtikz@subfix@prefix}{}{%
+        \@ifundefined{subfix@attach@modified}{}{%
             \expandafter\let\csname subfix\expandafter\endcsname\csname #1@old@subfix\endcsname%
         }%
     }%
@@ -41,4 +41,7 @@
 }
 \long\def\subtikzpictureactivate#1{\csname #1@setanchors\endcsname}
 
-\let\subtikz@subfix@prefix\relax
+\def\subtikz@subfix@prefix{}
+
+%% set this, and subtikzpicture will attach the modified subfix macro
+\let\subfix@attach@modified\relax
