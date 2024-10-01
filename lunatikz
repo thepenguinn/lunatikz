@@ -2301,7 +2301,11 @@ local function lunatikz_config(data)
     else
         if arg_config.clear then
             for _, arg in ipairs(data.args) do
-                data.lconfig[arg] = nil
+                if type(data.lconfig[arg]) == "boolean" then
+                    data.lconfig[arg] = false
+                else
+                    data.lconfig[arg] = nil
+                end
             end
         else
             for key, val in pairs(arg_config) do
@@ -2377,7 +2381,7 @@ local function lunatikz(args)
             ["style.fromroot"] = false,
             ["touch"] = false,
             ["touch.file"] = "need_to_build",
-            ["use.subtikz"] = false,
+            ["use.subtikz"] = true,
         }
     })
 
