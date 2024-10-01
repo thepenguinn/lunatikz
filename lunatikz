@@ -1087,6 +1087,47 @@ end
 local function gen_standalone_sub(root_dir, cur_dir, lconfig,
     pics_list, dep_list, dep_cache)
 
+    local function get_rel_subfix_parent(pic_parent_dir)
+        local cur_dir_from_root
+        local pic_dir_from_root
+        local rel_parent
+        local pic_dir = pic_parent_dir:gsub("/-[^/]*$", "")
+
+        cur_dir_from_root = cur_dir:gsub("^" .. root_dir .. "/*", "")
+        pic_dir_from_root = pic_dir:gsub("^" .. root_dir .. "/*", "")
+
+        local tmp_cur_dir = cur_dir_from_root:match("^[^/]*")
+        local tmp_pic_dir = pic_dir_from_root:match("^[^/]*")
+
+        while (tmp_cur_dir ~= "" and tmp_pic_dir ~= "")
+            and tmp_cur_dir == tmp_pic_dir
+            do
+            cur_dir_from_root = cur_dir_from_root:gsub("^[^/]*/*", "")
+            pic_dir_from_root = pic_dir_from_root:gsub("^[^/]*/*", "")
+
+            tmp_cur_dir = cur_dir_from_root:match("^[^/]*")
+            tmp_pic_dir = pic_dir_from_root:match("^[^/]*")
+        end
+
+        cur_dir_from_root = cur_dir_from_root:gsub("[^/]+", "..")
+
+        if cur_dir_from_root == "" then
+            if pic_dir_from_root == "" then
+                rel_parent = ""
+            else
+                rel_parent = pic_dir_from_root .. "/"
+            end
+        else
+            if pic_dir_from_root == "" then
+                rel_parent = cur_dir_from_root .. "/"
+            else
+                rel_parent = cur_dir_from_root .. "/" .. pic_dir_from_root .. "/"
+            end
+        end
+
+        return rel_parent
+    end
+
     local function add_files(fd, pics_list)
 
         local file_source
@@ -1107,15 +1148,12 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
 
             if USE_SUBTIKZ and dep_cache[key]["subfix_files"] then
 
-                rel_spic_parent = dep_list[key].parent_dir:gsub("^" .. cur_dir .. "/", "")
-                rel_spic_parent = rel_spic_parent:gsub("/-[^/]*$", "")
-
-                if rel_spic_parent ~= "" then
-                    rel_spic_parent =  rel_spic_parent .. "/"
-                end
-
                 -- \makeatletter \def\subtikz@subfix@prefix{rel_spic_parent} \makeatother
-                fd:write("\\makeatletter \\def\\subtikz@subfix@prefix{" .. rel_spic_parent .. "} \\makeatother\n\n")
+                fd:write(
+                    "\\makeatletter \\def\\subtikz@subfix@prefix{"
+                    .. get_rel_subfix_parent(dep_list[key].parent_dir)
+                    .. "} \\makeatother\n\n"
+                )
             end
 
             fd:write(file_source)
@@ -1159,6 +1197,11 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
         .. "] {subfiles}\n\n"
     )
 
+    if USE_SUBTIKZ then
+        -- enabling attaching of modified subfix inside subtikzpicture
+        fd:write("\\makeatletter \\def\\subfix@attach@modified{} \\makeatother\n\n")
+    end
+
     for key in pairs(pics_list) do
 
         -- TODO: I think it's almost impossible to add the the \subfix
@@ -1187,7 +1230,13 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
             rel_epic_parent =  rel_epic_parent .. "/"
         end
 
-        fd:write("\\renewcommand\\subfix[1]{" .. rel_epic_parent .. "#1}\n\n")
+        if dep_cache[key]["subfix_files"] then
+            fd:write(
+                "\\renewcommand\\subfix[1]{"
+                .. get_rel_subfix_parent(dep_list[key].parent_dir)
+                .. "#1}\n\n"
+            )
+        end
 
         file_source = read_file(
             dep_list[key].parent_dir
