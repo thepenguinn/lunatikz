@@ -39,6 +39,20 @@ new macros allows to define `subtikzpicture`s just like one would define a typic
 `tikzpicture` block. In other words, we can use normal `\draw ;` and other tikz
 commands inside these `subtikzpictures`.
 
+`subtikzpicture` also ensures that the `\subfix` files can also be found by each
+of the `pics` even when they are nested. `subtikzpicture` with the help of LunaTikZ
+will dynamically attach and detach a modified `\subfix` for each of the `pics` as
+they are been called (more on this later).
+
+Note: `subtikzpicture.sty` can be found in the root directory of this repo. You
+can place it in your project's root directory and use it by using,
+
+```latex
+\usepackage{subtikzpicture}
+```
+
+Or you could just place it where `latex` looks for all the packages.
+
 ### Defining a Subtikzpicture
 
 In order to define a `subtikzpicture` and use it properly, they should follow
@@ -51,6 +65,9 @@ the `subtikzpicture` is used. And in the definition, all other `nodes` and
 - Every `node`, `coordinate`, and all other tikz commands that takes a `name`
 should be prefixed with `#1-`, this `#1` will be replaced with the name that
 given at the instantiation of the `subtikzpicture`.
+
+- `\subfix` files will be relative to the parent directory of the `pics_directory`,
+not relative to the `pics` file.
 
 ```latex
 %                   +-------------+---------- subcircuit command name
@@ -368,15 +385,11 @@ End pics has the typical tikzpicture `begin` `end` block. That is, this one.
 ```latex
 \begin{tikzpicture}
 
-    \draw
+    \draw (1,0) (anchor) ;
 
-    (1,0)
-    \subfigonecircle {fstcircle} {anothercoord}
+    \subfigonecircle {fstcircle} {anchor} {anothercoord}
 
-    (fstcircle-center)
-    \subfigonecircle {seccircle} {anothercoord}
-
-    ;
+    \subfigonecircle {seccircle} {fstcircle-center} {anothercoord}
 
 \end{tikzpicture}
 ```
@@ -417,13 +430,14 @@ Typical content of a Sub Pic will be:
 \subtikzpicturedef{subfigonecircle} {
     center, anothercoord%
 } {
+    \draw (#1-start)
     coordinate (#1-center)
     circle [radius = 1]
     ++(1,0)
     %% NO EMPTY LINES ALLOWED
     coordinate (#1-anothercoord)
+    ;
 }
-
 
 \subtikzpictureactivate{subfigonecircle}
 
@@ -760,6 +774,17 @@ will be silently turnicated.
 
 </table>
 
+Note: there's currently a `use.subtikz` key which defaults to `true`.
+It will be removed in the future. You can simply ignore its existence,
+unless you've been using LunaTikZ from when it been using `circuitikz`'s
+`subcircuits`. If so, you can set `use.subtikz` to `false` by running.
+
+```sh
+lunatikz config --clear use.subtikz
+```
+
+But you should switch to `subtikzpicture` as soon as possible, because
+this will be removed in the coming releases.
 
 ## build subcommand
 
