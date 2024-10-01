@@ -20,71 +20,146 @@ project should use `subfiles` and `circuitikz` packages.
 files while building tikzpicture and helps to determine which one is the main
 file.
 
-## Circuitikz
+## Subtikzpicture
 
-Currently `circuitikz` has a neat feature called `subcircuits` (Beware: its an
-experimental one). In `circuitikz`'s terms, `subcircuits` are chunks of tikz
-code that can have custom anchors and can be used in other `circuits`. But it
-has some disadvantages. It needs to be written in a way that it is valid inside
-a `\draw ;` block (because it is implemented in a way that it is finally drawn
-with a single `\draw ;` command, but it's possible to reimplement this in a way
-that allows multiple `\draw ;` blocks to be included inside the `subcircuit`
-definitions, more on that later).
+`subtikzpicture` is a small package that is inspired from the `circuitikz`
+package's `subcircuits` feature. So basically `circuitikz` has a neat feature
+called `subcircuits` (Beware: its an experimental one). In `circuitikz`'s
+terms, `subcircuits` are chunks of tikz code that can have custom anchors and
+can be used in other `circuits`. But it has some disadvantages. It needs to be
+written in a way that it is valid inside a `\draw ;` block (because it is
+implemented in a way that it is finally drawn with a single `\draw ;` command,
+but it's possible to reimplement this in a way that, it allows multiple `\draw ;`
+blocks to be included inside the `subcircuit` definitions).
 
-The above mentioned disadvantage also means that we can't use anything that are
-parsed by LaTeX or any other packages other than TikZ itself. This means no
-`if elses` and `newcommands` with optional arguments (it's possible to use
-`newcommands` with no optional arguments though). (Atleast I couldn't figure
-out a way to do the above mentioned things with `subcircuits`)
+`subtikzpicture` attempts to address the above issue, by reimplementing two similar
+macros, namely `subtikzpicturedef` and `subtikzpictureactivate`, both are analogous
+to `circuitikz`'s `ctikzsubcircuitdef` and `ctikzsubcircuitactivate`. But these
+new macros allows to define `subtikzpicture`s just like one would define a typical
+`tikzpicture` block. In other words, we can use normal `\draw ;` and other tikz
+commands inside these `subtikzpictures`.
 
-### Defining a Subcircuit
+### Defining a Subtikzpicture
+
+In order to define a `subtikzpicture` and use it properly, they should follow
+some guidelines:
+
+- There will be a `dynamic coordinate` named `#1-start` be defined when
+the `subtikzpicture` is used. And in the definition, all other `nodes` and
+`coordinates` should be anchored relative to this `coordinate`.
+
+- Every `node`, `coordinate`, and all other tikz commands that takes a `name`
+should be prefixed with `#1-`, this `#1` will be replaced with the name that
+given at the instantiation of the `subtikzpicture`.
 
 ```latex
 %                   +-------------+---------- subcircuit command name
 %                   v             v
-\ctikzsubcircuitdef{subfigonecircle} {
+\subtikzpicturedef{subfigonecircle} {
     center, anothercoord%% <----------------- comma seperated anchors
 } {
+    \draw (#1-start)% <---------------------- anchoring to (#1-start)
     coordinate (#1-center)% <------------+
     circle [radius = 1]%                 |
     ++(1,0)%                             |
     %% NO EMPTY LINES ALLOWED%           |
     coordinate (#1-anothercoord)% <------+--- subcircuit definition
+    ;
 }
 
 ```
 
-### Activating a Subcircuit
+### Activating a Subtikzpicture
 
-After the above definition, `circuitikz` needs to calculate the positions of
-the custom anchors. For that, we need to activate the `subcircuit`. The
-following will activate the `subcircuit`
+After the above definition, `subtikzpicture` needs to calculate the positions
+of the custom anchors, and create and store the modified `subfix` macro. For that, we
+need to activate the `subtikzpicture`. The following will activate the
+`subtikzpicture`.
 
 ```latex
-\ctikzsubcircuitactivate{subfigonecircle}
+\subtikzpictureactivate{subfigonecircle}
 ```
 
-### Using a Subcircuit
+### Instantiating a Subtikzpicture
+
+Instantiating a defined `subtikzpicture` is also differ a little from
+`subcircuit`. `subtikzpicture` instantiation requires three arguments,
+one is the `name` of the instance, the next is a `local anchor` and
+finally the last one is the `subtikzpicture anchor`.
 
 ```latex
 \begin{tikzpicture}
 
-    \draw%            +-------+------------------- name of subcircuit
+    \draw (1,0) (anchor) ;
+%                     +-------+-------------------------- name of subcircuit
 %                     |       |
-%                     |       |   +----------+---- anchor to use
-    (1,0)%            v       v   v          v
-    \subfigonecircle {fstcircle} {anothercoord}
+%                     |       |   +----+----------------- local anchor
+%                     |       |   |    |
+%                     |       |   |    |   +----------+-- subtikzpicture anchor to use
+%                     v       v   v    v   v          v
+    \subfigonecircle {fstcircle} {anchor} {anothercoord}
 
-    (fstcircle-center)% <------------------------- using fstcircle's center
-    \subfigonecircle {seccircle} {anothercoord}%   as next coordinate
-%   ^                                         ^
-%   +-----------------------------------------+--- drawing another circle named
-%                                                  seccircle with its anothercoord
-    ;%                                             at the center of fstcircle
+%                                 +--------------+------- using fstcircle's center as
+%                                 |              |        the local anchor to seccircle
+%                                 v              v
+    \subfigonecircle {seccircle} {fstcircle-center} {anothercoord}%
+%   ^                                                            ^
+%   |                        drawing another circle named        |
+%   +----------------------- seccircle with its anothercoord ----+
+%                            at the center of fstcircle
 
 \end{tikzpicture}
 ```
 
+### Subfix Files
+
+`\subfix` is macro defined by the `subfiles` package. Essentially it helps to
+fix the `paths` used in each of the `subfiles`. Let me explain with a example,
+let's say we have project directory structured like so:
+
+```
+.
+├── chapter_01
+│   ├── chapter.tex
+│   └── data
+│       └── someData.csv
+└── main.tex
+```
+
+And let's say the `chapter.tex` has this code snippet that plots some data:
+
+```latex
+\begin{tikzpicture} []
+
+    \begin{axis} [
+            ycomb,
+            width = 4in,
+            height = 1.5in,
+        ]
+        \addplot [
+            mark = *,
+        ] table [
+            y = y,
+            x = t,
+        ] {\subfix{data/someData.csv}};
+
+    \end{axis}
+
+\end{tikzpicture}
+```
+
+We can see that the `data/someData.csv` is wrapped in `\subfix`, this will
+ensures that the `\addplot` will find `data/someData.csv` no matter where
+it's been build from. In this case, if we build the `main.tex` file `\subfix`
+will prepend a `chapter_01/` to path.
+
+Like above, while defining `tikzpics`, the file paths should be wrapped in
+`\subfix`, LunaTikZ and `subtikzpicture` will ensure these wrapped files are
+available while building the pics.
+
+Note: The `tikzpictures` as stored in a directory named `pics_directory` (more
+on this later), but the path to the `\subfix` should be the relative path from
+the parent directory of this `pics_directory`.
 
 # Getting Started
 
@@ -181,6 +256,15 @@ pdftk
 </pre> </td>
 <td>
 Helps to split pdf into seperate pdf files
+</td>
+</tr>
+
+<tr>
+<td> <pre>
+sha256sum
+</pre> </td>
+<td>
+Calculates the hash of `\subfix` files
 </td>
 </tr>
 
@@ -330,7 +414,7 @@ labelling in its pics file.)
 Typical content of a Sub Pic will be:
 
 ```latex
-\ctikzsubcircuitdef{subfigonecircle} {
+\subtikzpicturedef{subfigonecircle} {
     center, anothercoord%
 } {
     coordinate (#1-center)
@@ -341,7 +425,7 @@ Typical content of a Sub Pic will be:
 }
 
 
-\ctikzsubcircuitactivate{subfigonecircle}
+\subtikzpictureactivate{subfigonecircle}
 
 %% Any other newcommands you like to implement
 %% goes here.
