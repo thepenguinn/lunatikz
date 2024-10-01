@@ -131,7 +131,7 @@ finally the last one is the `subtikzpicture anchor`.
 ### Subfix Files
 
 `\subfix` is macro defined by the `subfiles` package. Essentially it helps to
-fix the `paths` used in each of the `subfiles`. Let me explain with an example,
+fix the `paths` used in each of the `subfiles`. Let's look at an example,
 let's say we have a project directory structured like so:
 
 ```
