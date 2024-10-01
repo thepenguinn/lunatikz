@@ -33,9 +33,9 @@ but it's possible to reimplement this in a way that, it allows multiple `\draw ;
 blocks to be included inside the `subcircuit` definitions).
 
 `subtikzpicture` attempts to address the above issue, by reimplementing two similar
-macros, namely `subtikzpicturedef` and `subtikzpictureactivate`, both are analogous
+macros, namely `subtikzpicturedef` and `subtikzpictureactivate`. Both are analogous
 to `circuitikz`'s `ctikzsubcircuitdef` and `ctikzsubcircuitactivate`. But these
-new macros allows to define `subtikzpicture`s just like one would define a typical
+new macros allows to define `subtikzpictures` just like one would define a typical
 `tikzpicture` block. In other words, we can use normal `\draw ;` and other tikz
 commands inside these `subtikzpictures`.
 
@@ -45,7 +45,7 @@ will dynamically attach and detach a modified `\subfix` for each of the `pics` a
 they are been called (more on this later).
 
 Note: `subtikzpicture.sty` can be found in the root directory of this repo. You
-can place it in your project's root directory and use it by using,
+can place it in your project's root directory and use it with `usepackage`,
 
 ```latex
 \usepackage{subtikzpicture}
@@ -131,8 +131,8 @@ finally the last one is the `subtikzpicture anchor`.
 ### Subfix Files
 
 `\subfix` is macro defined by the `subfiles` package. Essentially it helps to
-fix the `paths` used in each of the `subfiles`. Let me explain with a example,
-let's say we have project directory structured like so:
+fix the `paths` used in each of the `subfiles`. Let me explain with an example,
+let's say we have a project directory structured like so:
 
 ```
 .
@@ -174,9 +174,9 @@ Like above, while defining `tikzpics`, the file paths should be wrapped in
 `\subfix`, LunaTikZ and `subtikzpicture` will ensure these wrapped files are
 available while building the pics.
 
-Note: The `tikzpictures` as stored in a directory named `pics_directory` (more
-on this later), but the path to the `\subfix` should be the relative path from
-the parent directory of this `pics_directory`.
+Note: The `tikzpictures` as stored in a particular directory known as a
+`pics_directory` (more on this later), but the path to the `\subfix` should be
+the relative path from the parent directory of this `pics_directory`.
 
 # Getting Started
 
@@ -281,7 +281,7 @@ Helps to split pdf into seperate pdf files
 sha256sum
 </pre> </td>
 <td>
-Calculates the hash of `\subfix` files
+Calculates the hash of <code>\subfix</code> files
 </td>
 </tr>
 
@@ -328,6 +328,13 @@ Cache file that lunatikz uses to store the dependancy tree of pics
 </tr>
 
 <tr>
+<td> <code>subfix_cache</code> </td>
+<td>
+Cache file that lunatikz uses to store the subfix file's info
+</td>
+</tr>
+
+<tr>
 <td> <code>build_entry</code> </td>
 <td>
 Stores the build entries for each of the directories
@@ -343,6 +350,11 @@ root directory
 </tr>
 
 </table>
+
+Note: If you are wishing to version control these files, you can
+simply ignore `dep_cache` and `subfix_cache`, they are not essential,
+lunatikz will rebuild them, if not found. Rest of these files are
+essential for properly building the pics.
 
 ## Pics Directory
 
@@ -776,8 +788,9 @@ will be silently turnicated.
 
 Note: there's currently a `use.subtikz` key which defaults to `true`.
 It will be removed in the future. You can simply ignore its existence,
-unless you've been using LunaTikZ from when it been using `circuitikz`'s
-`subcircuits`. If so, you can set `use.subtikz` to `false` by running.
+unless you've been using LunaTikZ from when it used `circuitikz`'s
+`subcircuits` and your pics are still using `circuitikz`'s `subcircuits`.
+If so, you can set `use.subtikz` to `false` by running.
 
 ```sh
 lunatikz config --clear use.subtikz
