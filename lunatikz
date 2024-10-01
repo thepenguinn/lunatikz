@@ -943,7 +943,7 @@ local function build_dep_for_file(
             if parent_need_to_build then
 
                 if not dep_cache[parent]["build_child_nodes"] then
-                    dep_cache[parennt]["build_child_nodes"] = {}
+                    dep_cache[parent]["build_child_nodes"] = {}
                 end
 
                 dep_cache[parent]["build_child_nodes"][style] =
