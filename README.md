@@ -39,7 +39,7 @@ new macros allows to define `subtikzpictures` just like one would define a typic
 `tikzpicture` block. In other words, we can use normal `\draw ;` and other tikz
 commands inside these `subtikzpictures`.
 
-`subtikzpicture` also ensures that the `\subfix` files can also be found by each
+`subtikzpicture` also ensures that the `\subfix` files can be found by each
 of the `pics` even when they are nested. `subtikzpicture` with the help of LunaTikZ
 will dynamically attach and detach a modified `\subfix` for each of the `pics` as
 they are been called (more on this later).
