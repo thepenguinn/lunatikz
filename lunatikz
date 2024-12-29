@@ -25,6 +25,17 @@ local function check_file(file_path)
 
 end
 
+local function escape_special_chars(string)
+    local new
+
+    assert(type(string) == "string")
+
+    new = string:gsub("%-", "%%-")
+    new = new:gsub("%.", "%%.")
+
+    return new
+end
+
 local function read_file(file)
 
     assert(
@@ -378,7 +389,7 @@ local function get_main_file(root_dir, file_path)
         return oafile_name
     else
         -- first argument is not subfiles then the file must be the main file
-        return file_path:gsub("^" ..  root_dir, "")
+        return file_path:gsub("^" ..  escape_special_chars(root_dir), "")
     end
 
 end
@@ -710,9 +721,10 @@ local function build_dep_for_file(
                 "readlink -e \"" .. subfix_path .. "\""
             )
             assert(tmp_fd, "subfix_from_file_iter: 'readlink' failed.")
+            root_dir = escape_special_chars(root_dir)
             subfix_path = tmp_fd:read("a")
                 :gsub("\n", "")
-                :gsub("^" .. root_dir .. "/", "")
+                :gsub("^" .. escape_special_chars(root_dir) .. "/", "")
 
             tmp_fd:close()
 
@@ -1093,8 +1105,8 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
         local rel_parent
         local pic_dir = pic_parent_dir:gsub("/-[^/]*$", "")
 
-        cur_dir_from_root = cur_dir:gsub("^" .. root_dir .. "/*", "")
-        pic_dir_from_root = pic_dir:gsub("^" .. root_dir .. "/*", "")
+        cur_dir_from_root = cur_dir:gsub("^" .. escape_special_chars(root_dir) .. "/*", "")
+        pic_dir_from_root = pic_dir:gsub("^" .. escape_special_chars(root_dir) .. "/*", "")
 
         local tmp_cur_dir = cur_dir_from_root:match("^[^/]*")
         local tmp_pic_dir = pic_dir_from_root:match("^[^/]*")
@@ -1223,7 +1235,7 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
         -- we need to add \renewcommand\subfix[1]{new_dir} before every end pic.
         -- the new_dir will be different depending on the end pic and the cur_dir.
 
-        rel_epic_parent = dep_list[key].parent_dir:gsub("^" .. cur_dir .. "/", "")
+        rel_epic_parent = dep_list[key].parent_dir:gsub("^" .. escape_special_chars(cur_dir) .. "/", "")
         rel_epic_parent = rel_epic_parent:gsub("/-[^/]*$", "")
 
         if rel_epic_parent ~= "" then
@@ -1677,7 +1689,7 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
             abs_path = tmp_fd:read("a"):gsub("\n", "")
 
             -- stripping root directory
-            in_root_dir, rel_path = abs_path:match("^(" .. root_dir .. ")/?(.*)$")
+            in_root_dir, rel_path = abs_path:match("^(" .. escape_special_chars(root_dir) .. ")/?(.*)$")
 
             assert(in_root_dir,
                 "parse_args_build: " .. abs_path .. " file is outside of root directory"
@@ -1690,7 +1702,7 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
 
             abs_parent_dir = abs_path:match("^(/?.-)/-([%w%.-_ ]+)$")
 
-            in_pics_directory = rel_parent_dir:match(pics_directory .. "$")
+            in_pics_directory = rel_parent_dir:match(escape_special_chars(pics_directory) .. "$")
 
             if in_pics_directory then
 
@@ -1906,7 +1918,7 @@ local function parse_args_add_remove(args_iter, root_dir)
             tmp_fd:close()
 
             arg_config[cur_list]
-            [#arg_config[cur_list] + 1] = abs_path:gsub("^" .. root_dir .. "/", "")
+            [#arg_config[cur_list] + 1] = abs_path:gsub("^" .. escape_special_chars(root_dir) .. "/", "")
 
         elseif val == "--gdep-list" then
             cur_list = "dep_list"
@@ -2061,12 +2073,12 @@ local function lunatikz_build(data)
     local subfix_cache
 
     local in_pics_directory = data.cur_dir
-        :match(lconfig["pics.directory"] .. "$")
+        :match(escape_special_chars(lconfig["pics.directory"]) .. "$")
 
     if #arg_config.file_list == 0
         and #arg_config.pics_list == 0
         and not in_pics_directory then
-        file_name = build_entry[cur_dir:gsub("^" .. root_dir .. "/?", "")]
+        file_name = build_entry[cur_dir:gsub("^" .. escape_special_chars(root_dir) .. "/?", "")]
         assert(file_name,
             "lunatikz_build: no arguments are given, and couldn't find an entry for"
             .. " current directory"
