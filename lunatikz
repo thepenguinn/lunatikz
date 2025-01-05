@@ -1158,6 +1158,14 @@ local function gen_standalone_sub(root_dir, cur_dir, lconfig,
                 .. ".tex"
             )
 
+            -- Replacing every empty line with a comment string
+            -- because subtikzpicture doesn't like empty lines
+            -- inside the definition.
+            file_source = file_source:gsub(
+                "\n\n+",
+                "\n%%%%%% LUNATIKZ: REMOVED EMPTY LINES %%%%%%\n"
+            )
+
             if USE_SUBTIKZ and dep_cache[key]["subfix_files"] then
 
                 -- \makeatletter \def\subtikz@subfix@prefix{rel_spic_parent} \makeatother
