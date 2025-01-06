@@ -1421,10 +1421,17 @@ local function clean_standalone_files(lconfig, root_dir, cur_dir)
         .. "/"
         .. lconfig["standalone.main"]
         .. ".tex\" \""
+
         .. cur_dir
         .. "/"
         .. lconfig["standalone.sub"]
         .. ".tex\" \""
+
+        .. cur_dir
+        .. "/"
+        .. lconfig["standalone.sub"]
+        .. ".log\" \""
+
         .. cur_dir
         .. "/"
         .. lconfig["standalone.tmpdir"]
