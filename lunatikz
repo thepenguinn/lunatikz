@@ -1767,6 +1767,16 @@ local function parse_args_build(args_iter, root_dir, pics_directory)
             margin = next_arg
 
             arg.skip_next()
+        elseif val == "--style" then
+            nextarg = arg.peek_next()
+            if nextarg then
+                arg_config["style"] = nextarg:gsub("[/\n]", "")
+                arg.skip_next()
+            else
+                assert(arg_config.clear,
+                    "parse_args_build: --style takes an argument"
+                )
+            end
         end
     end
 
@@ -2016,7 +2026,14 @@ local function fill_gdep_list(root_dir, dep_list)
 
 end
 
-local function set_style(root_dir, lconfig)
+local function set_style(root_dir, lconfig, arg_config_style)
+
+    if arg_config_style ~= nil then
+        lconfig["style"] = arg_config_style
+        tb_log("warn",
+            "set_style: Overriding style with \"" .. arg_config_style .. "\""
+        )
+    end
 
     if lconfig["style"] ~= "default" then
         return
@@ -2114,7 +2131,7 @@ local function lunatikz_build(data)
         USE_SUBTIKZ = true
     end
 
-    set_style(root_dir, lconfig)
+    set_style(root_dir, lconfig, arg_config["style"])
 
     fill_gdep_list(root_dir, dep_list)
 
