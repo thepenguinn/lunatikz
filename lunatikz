@@ -256,9 +256,11 @@ local function get_pics_list(root_dir, file_list, pics_list)
                 assert(not (is_dir == "/"), "File name ends with a /")
 
                 file_basename = file_name:match("(.-)%.[%w-_]+ *$")
-                assert(file_basename, "File basename is empty")
-
-                end_pics_data.pics_list[file_basename] = true
+                if file_basename then
+                    end_pics_data.pics_list[file_basename] = true
+                else
+                    tb_log("warn", "File basename is empty")
+                end
 
             end
 
