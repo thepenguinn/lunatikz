@@ -198,7 +198,7 @@ end
 -- Param: file_list a table of paths, should be relative paths from root_dir.
 -- Return: a hashmap with each file name without extention as keys to tables,
 --         and each having the parent_dir(string), and lmodt(nummer) as values
-local function get_pics_list(root_dir, file_list, pics_list)
+local function get_pics_list(root_dir, file_list, pics_list, pics_directory)
 
     assert(type(pics_list) == "table",
         "get_pics_list: expected pics_list to be a table"
@@ -256,10 +256,15 @@ local function get_pics_list(root_dir, file_list, pics_list)
                 assert(not (is_dir == "/"), "File name ends with a /")
 
                 file_basename = file_name:match("(.-)%.[%w-_]+ *$")
-                if file_basename then
-                    end_pics_data.pics_list[file_basename] = true
+
+                if parent_dir:match("[^/]*$") == pics_directory then
+                    if file_basename then
+                        end_pics_data.pics_list[file_basename] = true
+                    else
+                        tb_log("warn", "File basename is empty")
+                    end
                 else
-                    tb_log("warn", "File basename is empty")
+                    tb_log("log", "Skipping: " .. fstarg .. " is not in lunatikz pics directory")
                 end
 
             end
@@ -2142,7 +2147,7 @@ local function lunatikz_build(data)
         get_dep_list_from_dir(data.root_dir, lconfig["pics.directory"], data.dep_list)
     end
 
-    get_pics_list(root_dir, arg_config.file_list, pics_list)
+    get_pics_list(root_dir, arg_config.file_list, pics_list, lconfig["pics.directory"])
 
     -- Adding user asked pics to the pics_list
     for _, pic in pairs(arg_config.pics_list) do
