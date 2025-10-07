@@ -10,7 +10,8 @@ LunaTikZ will read the given `.tex` file and its included files, and takes
 every argument to `\includegraphics` macro and tries to build that pdf file
 from the corresponding tex file located in the `tikzpics` directories. In order
 to use `lunatikz`, the project needs to be structured specifically. And the
-project should use `subfiles` and `circuitikz` packages.
+project should use `subfiles` and `subtikzpicture` (`subtikzpicture.sty` can be
+found in this repo's root) packages.
 
 # Dependent LaTeX Packages
 
