@@ -707,6 +707,7 @@ local function build_dep_for_file(
         local _iter = file_source:gmatch(
             "\\subfix[ \n\t]*{[ \n\t]*(.-)[ \n\t]*}"
         )
+        local root_dir = escape_special_chars(root_dir)
 
         -- strips the last directory from the parent_dir
         -- this will be absolute path
@@ -728,10 +729,9 @@ local function build_dep_for_file(
                 "readlink -e \"" .. subfix_path .. "\""
             )
             assert(tmp_fd, "subfix_from_file_iter: 'readlink' failed.")
-            root_dir = escape_special_chars(root_dir)
             subfix_path = tmp_fd:read("a")
                 :gsub("\n", "")
-                :gsub("^" .. escape_special_chars(root_dir) .. "/", "")
+                :gsub("^" .. root_dir .. "/", "")
 
             tmp_fd:close()
 
