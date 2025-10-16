@@ -429,7 +429,7 @@ LunaTikZ will do the rest of the **Magic**.
 ### Sub Pics
 
 Sub pics are the pics that can be other pic's dependencies. They don't have the
-typical `begin` `end` blocks. Instead they will have a subcircuit `definition`
+typical `begin` `end` blocks. Instead they will have a subfigure `definition`
 and `activation` blocks. And they can also contain any other `newcommand`
 definitions that will act on the above subfigure after it's been drawn. Maybe,
 like a newcommand to label the above subfigure. So that you only need to draw
@@ -459,13 +459,13 @@ Typical content of a Sub Pic will be:
 ```
 
 NOTE: The file name of a `sub pic` should be the same as the first argument to
-`\ctikzsubcircuitdef`, with `.tex` extention. ie, in the above example, the
+`\subtikzpicturedef`, with `.tex` extention. ie, in the above example, the
 file name would be `subfigonecircle.tex`. And it should be placed inside the
 pics directory.
 
 ## Typical LunaTikZ Workflow
 
-If you want to see a a working, configured LunaTikZ project, you can take look
+If you want to see a working, configured LunaTikZ project, you can take look
 at the example project in the `test/shapes/` directory of this repo.
 
 First of all, clone this repo.
